@@ -1,0 +1,58 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CodeCity — a repo as a growing city</title>
+    <link rel="stylesheet" href="/src/style.css" />
+  </head>
+  <body>
+    <div id="app"></div>
+
+    <!-- Top bar: repo input + HUD -->
+    <header id="topbar">
+      <div class="brand">🏙️ <span>CodeCity</span></div>
+      <form id="repo-form">
+        <input id="repo-input" type="text" placeholder="owner/repo  or  https://github.com/owner/repo" spellcheck="false" />
+        <button id="repo-btn" type="submit">Build city</button>
+      </form>
+      <div id="hud">
+        <span id="hud-repo">—</span>
+      </div>
+    </header>
+
+    <!-- Hover tooltip -->
+    <div id="tooltip" class="hidden"></div>
+
+    <!-- Language legend -->
+    <aside id="legend" class="hidden"></aside>
+
+    <!-- Timeline transport -->
+    <footer id="timeline" class="hidden">
+      <button id="play-btn" title="Play / pause">▶</button>
+      <div class="tl-main">
+        <input id="scrubber" type="range" min="0" max="0" value="0" step="1" />
+        <div class="tl-meta">
+          <span id="tl-commit">commit 0 / 0</span>
+          <span id="tl-date">—</span>
+          <span id="tl-author">—</span>
+          <span id="tl-alive">0 buildings</span>
+        </div>
+      </div>
+      <label class="speed">
+        speed
+        <select id="speed">
+          <option value="0.5">0.5×</option>
+          <option value="1" selected>1×</option>
+          <option value="2">2×</option>
+          <option value="4">4×</option>
+        </select>
+      </label>
+    </footer>
+
+    <!-- Status toast -->
+    <div id="status" class="hidden"></div>
+
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

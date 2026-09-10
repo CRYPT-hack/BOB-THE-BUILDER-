@@ -1,0 +1,20 @@
+# dependencies
+node_modules/
+
+# build output
+frontend/dist/
+
+# logs
+*.log
+npm-debug.log*
+
+# env
+.env
+.env.local
+
+# os
+.DS_Store
+Thumbs.db
+
+# scratch
+scratch-city.json

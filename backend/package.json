@@ -1,0 +1,18 @@
+{
+  "name": "codecity-backend",
+  "version": "0.1.0",
+  "description": "Renders a git repo as a 3D city that grows over its commit history",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "engine": "node engine/cli.js"
+  },
+  "dependencies": {
+    "compression": "^1.8.1",
+    "cors": "^2.8.5",
+    "express": "^5.1.0",
+    "mongoose": "^8.9.5"
+  }
+}
