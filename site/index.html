@@ -1,0 +1,185 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>BOB THE BUILDER — We build your git city</title>
+<meta name="description" content="Render any GitHub repository as a 3D city that grows over its commit history. Every file is a building, every folder a district." />
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+<link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ================= NAV ================= -->
+<header class="nav" id="nav">
+  <a class="brand" href="#top">
+    <span class="brand-mark" aria-hidden="true"></span>
+    <span class="brand-name">BOB THE BUILDER</span>
+  </a>
+
+  <nav class="nav-links" aria-label="Primary">
+    <a href="#features">Features</a>
+    <a href="#how">How it works</a>
+    <a href="#tech">Tech</a>
+    <!-- Shown only once the header collapses, where the button is hidden. -->
+    <a class="only-collapsed" href="https://github.com/CRYPT-hack/BOB-THE-BUILDER-" target="_blank" rel="noopener">View on GitHub</a>
+  </nav>
+
+  <a class="btn btn-ghost" href="https://github.com/CRYPT-hack/BOB-THE-BUILDER-" target="_blank" rel="noopener">
+    View on GitHub
+  </a>
+
+  <button class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
+    <span></span><span></span><span></span>
+  </button>
+</header>
+
+<main id="top">
+
+  <!-- ================= HERO ================= -->
+  <section class="hero">
+    <span class="pill">WE BUILD YOUR GIT CITY</span>
+
+    <h1>
+      Your codebase is a city.<br />
+      <span class="grad">Watch it get built.</span>
+    </h1>
+
+    <p class="lede">
+      Every file is a building. Every folder a district. Height is lines of code.
+      Press play and the city rises one building at a time, commit by commit,
+      through your repo&rsquo;s entire history.
+    </p>
+
+    <form class="repo-form" id="repo-form">
+      <input
+        id="repo-input"
+        type="text"
+        spellcheck="false"
+        autocomplete="off"
+        placeholder="github.com/CRYPT-hack/BOB-THE-BUILDER-"
+        aria-label="GitHub repository URL"
+      />
+      <button class="btn btn-primary" type="submit">Build city</button>
+    </form>
+    <p class="hint" id="hint">No signup. Paste any public repo and watch it build.</p>
+
+    <!-- App window mock with a city that builds itself -->
+    <div class="window reveal">
+      <div class="titlebar">
+        <i class="dot r"></i><i class="dot y"></i><i class="dot g"></i>
+        <span class="url">localhost:3000 &nbsp;—&nbsp; CRYPT-hack/BOB-THE-BUILDER-</span>
+      </div>
+      <div class="city" id="city" aria-hidden="true"></div>
+      <div class="scrubber">
+        <button class="play" id="play" aria-label="Replay the build">&#9654;</button>
+        <div class="track"><div class="fill" id="fill"></div></div>
+        <span class="meta" id="meta">commit 1 / 6,158</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= FEATURES ================= -->
+  <section class="section" id="features">
+    <span class="eyebrow accent">THE METAPHOR</span>
+    <h2>Four rules, and the whole repo makes sense</h2>
+
+    <div class="grid grid-4">
+      <article class="card reveal">
+        <span class="chip c-teal"></span>
+        <h3>Buildings are files</h3>
+        <p>Height is lines of code. A 3,000&#8209;line module is a tower; a config stub is a shed. Watch a file grow floor by floor as it&rsquo;s edited.</p>
+      </article>
+
+      <article class="card reveal">
+        <span class="chip c-violet"></span>
+        <h3>Districts are folders</h3>
+        <p>A squarified treemap zones the ground by directory, and the gaps it leaves become the street grid. Structure before detail.</p>
+      </article>
+
+      <article class="card reveal">
+        <span class="chip c-pink"></span>
+        <h3>Type picks the form</h3>
+        <p>Twelve massing types. Source code builds offices and towers, docs build churches and civic halls, config builds depots and utility yards.</p>
+      </article>
+
+      <article class="card reveal">
+        <span class="chip c-sand"></span>
+        <h3>Every commit, replayed</h3>
+        <p>One frame per commit &mdash; not a sampled approximation. Scrub the full history and see exactly when each building appeared.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= HOW IT WORKS ================= -->
+  <section class="section" id="how">
+    <span class="eyebrow violet">HOW IT WORKS</span>
+    <h2>Paste a URL. Get a city.</h2>
+
+    <div class="grid grid-3">
+      <article class="card step reveal">
+        <span class="num">01</span>
+        <h3>Paste any public repo</h3>
+        <p>Drop in a GitHub URL. No signup, no install, no access token.</p>
+      </article>
+
+      <article class="card step reveal">
+        <span class="num">02</span>
+        <h3>We replay the git log</h3>
+        <p>One pass of <code>git log --numstat</code> reconstructs every file&rsquo;s line count at every commit &mdash; without ever checking one out.</p>
+      </article>
+
+      <article class="card step reveal">
+        <span class="num">03</span>
+        <h3>The city rises</h3>
+        <p>Buildings break ground one at a time, in commit order, until the repo stands at HEAD.</p>
+      </article>
+    </div>
+  </section>
+
+  <!-- ================= STATS ================= -->
+  <section class="stats" id="tech">
+    <div class="stat"><b data-count="6158">0</b><span>commits replayed, unsampled</span></div>
+    <div class="stat"><b data-count="869">0</b><span>buildings in one scene</span></div>
+    <div class="stat"><b data-count="4">0</b><span>draw calls, any repo size</span></div>
+    <div class="stat"><b data-count="215">0</b><span>frames per second</span></div>
+  </section>
+
+  <!-- ================= TECH ================= -->
+  <section class="section tight">
+    <span class="eyebrow accent">UNDER THE HOOD</span>
+    <h2>Built to survive real repositories</h2>
+    <div class="grid grid-3">
+      <article class="card reveal">
+        <h3>One draw call, any size</h3>
+        <p>Every building of a given shape lives in a single <code>InstancedMesh</code>. A 10,000&#8209;file repo costs the same handful of draw calls as a 10&#8209;file one.</p>
+      </article>
+      <article class="card reveal">
+        <h3>Streamed git parsing</h3>
+        <p>The log is parsed line by line as it arrives, so a repo with hundreds of megabytes of history never lands in memory at once.</p>
+      </article>
+      <article class="card reveal">
+        <h3>Real materials</h3>
+        <p>Ground&#8209;truth ambient occlusion, an environment probe for glazing, and procedural facades with window reveals &mdash; so buildings read as solid, not as boxes.</p>
+      </article>
+    </div>
+  </section>
+
+</main>
+
+<!-- ================= FOOTER ================= -->
+<footer class="footer">
+  <h2>See what your repo looks like.</h2>
+  <p>Open source. Runs locally. Node&nbsp;+&nbsp;Express on the back, Three.js on the front.</p>
+  <a class="btn btn-primary lg" href="https://github.com/CRYPT-hack/BOB-THE-BUILDER-" target="_blank" rel="noopener">
+    Clone it on GitHub
+  </a>
+  <hr />
+  <small>BOB THE BUILDER &nbsp;·&nbsp; WE BUILD YOUR GIT CITY</small>
+</footer>
+
+<script src="script.js"></script>
+</body>
+</html>
