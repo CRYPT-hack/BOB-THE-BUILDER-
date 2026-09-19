@@ -1,57 +1,242 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>CodeCity — a repo as a growing city</title>
+    <title>CodeCity — codebase visualizer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Geist+Mono:wght@400;500;600&family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap"
+    />
     <link rel="stylesheet" href="/src/style.css" />
   </head>
   <body>
-    <div id="app"></div>
+    <!-- ============================== Top bar ============================== -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <a class="brand" href="#city" data-go="city">
+          <span class="brand-mark"><span class="ms">apartment</span></span>
+          <span class="brand-text">
+            <b>CodeCity</b>
+            <small>codebase visualizer</small>
+          </span>
+        </a>
 
-    <!-- Top bar: repo input + HUD -->
-    <header id="topbar">
-      <div class="brand">🏙️ <span>CodeCity</span></div>
-      <form id="repo-form">
-        <input id="repo-input" type="text" placeholder="owner/repo  or  https://github.com/owner/repo" spellcheck="false" />
-        <button id="repo-btn" type="submit">Build city</button>
-      </form>
-      <div id="hud">
-        <span id="hud-repo">—</span>
+        <div class="search" id="search">
+          <span class="ms">search</span>
+          <input id="search-input" type="text" spellcheck="false" autocomplete="off"
+                 placeholder="Inspect repository files…" aria-label="Search files" />
+          <kbd>/</kbd>
+          <div class="search-results" id="search-results" hidden></div>
+        </div>
+      </div>
+
+      <nav class="tabs" aria-label="Views">
+        <a href="#city" data-view="city" class="active">City View</a>
+        <a href="#files" data-view="files">Explore Files</a>
+        <a href="#history" data-view="history">History &amp; Evolution</a>
+        <a href="#health" data-view="health">Code Health</a>
+      </nav>
+
+      <div class="topbar-right">
+        <div class="popover-anchor">
+          <button class="pill-btn" id="repo-pill" aria-haspopup="dialog" aria-expanded="false">
+            <span class="ms">folder_zip</span>
+            <span class="repo-name" id="repo-name">—</span>
+            <span class="ms dim">expand_more</span>
+          </button>
+          <form class="popover repo-pop" id="repo-form" hidden>
+            <label for="repo-input">Build a city from any public repo</label>
+            <div class="row">
+              <input id="repo-input" type="text" spellcheck="false" autocomplete="off"
+                     placeholder="owner/repo or https://github.com/owner/repo" />
+              <button class="btn primary" id="repo-btn" type="submit">Build city</button>
+            </div>
+            <p class="hint">Cloned and analysed on your machine. Nothing is uploaded.</p>
+          </form>
+        </div>
+
+        <div class="pill" id="branch-pill" title="Branch whose history is being replayed">
+          <span class="ms">commit</span>
+          <span class="mono" id="branch-name">—</span>
+        </div>
+
+        <div class="popover-anchor">
+          <button class="icon-btn" id="settings-btn" title="Display settings" aria-haspopup="dialog" aria-expanded="false">
+            <span class="ms">tune</span>
+          </button>
+          <div class="popover settings-pop" id="settings" hidden>
+            <label class="toggle">
+              <span><b>District labels</b><small>Folder names over the city</small></span>
+              <input type="checkbox" id="opt-labels" checked />
+            </label>
+            <label class="toggle">
+              <span><b>Change glow</b><small>Emerald on files just edited</small></span>
+              <input type="checkbox" id="opt-heat" checked />
+            </label>
+          </div>
+        </div>
       </div>
     </header>
 
-    <!-- Hover tooltip -->
-    <div id="tooltip" class="hidden"></div>
+    <main>
+      <!-- ============================ City View ============================ -->
+      <section class="view view-city" id="view-city" data-view="city">
+        <div id="app" class="stage"></div>
+        <div class="ambient" aria-hidden="true"></div>
 
-    <!-- Language legend -->
-    <aside id="legend" class="hidden"></aside>
-
-    <!-- Timeline transport -->
-    <footer id="timeline" class="hidden">
-      <button id="play-btn" title="Play / pause">▶</button>
-      <div class="tl-main">
-        <input id="scrubber" type="range" min="0" max="0" value="0" step="1" />
-        <div class="tl-meta">
-          <span id="tl-commit">commit 0 / 0</span>
-          <span id="tl-date">—</span>
-          <span id="tl-author">—</span>
-          <span id="tl-alive">0 buildings</span>
+        <!-- Status + guided tour -->
+        <div class="float top-left">
+          <div class="glass status">
+            <span class="live-dot"></span>
+            <b>Interactive Cityscape</b>
+            <span class="sep">·</span>
+            <span class="mono dim" id="city-status">—</span>
+          </div>
+          <button class="glass tour-btn" id="tour-btn">
+            <span class="ms accent">explore</span>
+            <b>Take a guided tour</b>
+            <span class="tag" id="tour-count">3 stops</span>
+          </button>
         </div>
-      </div>
-      <label class="speed">
-        speed
-        <select id="speed">
-          <option value="0.5">0.5×</option>
-          <option value="1" selected>1×</option>
-          <option value="2">2×</option>
-          <option value="4">4×</option>
-        </select>
-      </label>
-    </footer>
 
-    <!-- Status toast -->
-    <div id="status" class="hidden"></div>
+        <div class="glass tour-card" id="tour-card" hidden>
+          <div class="tour-head">
+            <span class="mono accent"><span class="ms">navigation</span><span id="tour-step">STOP 1 OF 3</span></span>
+            <button class="icon-btn sm" id="tour-close" title="Exit tour"><span class="ms">close</span></button>
+          </div>
+          <h3 id="tour-title">—</h3>
+          <p id="tour-text">—</p>
+          <div class="tour-foot">
+            <button class="btn ghost sm" id="tour-exit">Exit tour</button>
+            <span>
+              <button class="btn secondary sm" id="tour-prev">Prev</button>
+              <button class="btn primary sm" id="tour-next">Next</button>
+            </span>
+          </div>
+        </div>
+
+        <!-- Hover tooltip -->
+        <div class="tooltip" id="tooltip" hidden>
+          <div class="tip-head"><i id="tip-dot"></i><span class="mono" id="tip-name">—</span></div>
+          <div class="tip-meta mono"><span id="tip-loc">—</span><span>·</span><span id="tip-author">—</span></div>
+          <div class="tip-hint"><span class="ms">touch_app</span>Click to inspect</div>
+        </div>
+
+        <!-- Inspector -->
+        <aside class="glass inspector" id="inspector" hidden>
+          <div class="ins-head">
+            <div>
+              <div class="eyebrow accent"><span class="ms">description</span><span id="ins-kind">Selected file</span></div>
+              <h2 id="ins-title">—</h2>
+              <div class="mono dim ins-path" id="ins-path">—</div>
+            </div>
+            <button class="icon-btn" id="ins-close" title="Close inspector"><span class="ms">close</span></button>
+          </div>
+
+          <div class="metric-grid">
+            <div class="metric">
+              <span class="label">Lines of code</span>
+              <span class="value mono" id="ins-loc">—</span>
+              <span class="sub" id="ins-rank">—</span>
+            </div>
+            <div class="metric">
+              <span class="label">Lead maintainer</span>
+              <span class="value" id="ins-owner">—</span>
+              <span class="sub" id="ins-last">—</span>
+            </div>
+          </div>
+
+          <div class="block">
+            <div class="block-title"><span class="ms emerald">history_edu</span>What happened to this file</div>
+            <p class="story" id="ins-story">—</p>
+          </div>
+
+          <div class="block spark-block">
+            <div class="spark-head">
+              <span>Size over the whole history</span>
+              <span class="mono emerald" id="ins-commits">—</span>
+            </div>
+            <div class="spark" id="ins-spark"></div>
+          </div>
+
+          <div class="ins-actions">
+            <button class="btn primary block-btn" id="ins-focus">
+              Fly to this building <span class="ms">arrow_forward</span>
+            </button>
+            <a class="btn secondary block-btn" id="ins-github" target="_blank" rel="noopener" hidden>
+              <span class="ms">open_in_new</span> View on GitHub
+            </a>
+          </div>
+        </aside>
+
+        <button class="glass reopen" id="ins-reopen" hidden>
+          <span class="ms accent">info</span>Inspector
+        </button>
+
+        <!-- Bottom controls -->
+        <div class="float bottom">
+          <div class="cam">
+            <div class="glass seg">
+              <button class="icon-btn flat" id="zoom-in" title="Zoom in (+)"><span class="ms">add</span></button>
+              <button class="icon-btn flat" id="zoom-out" title="Zoom out (−)"><span class="ms">remove</span></button>
+              <span class="divider"></span>
+              <button class="seg-btn" id="cam-reset"><span class="ms">restart_alt</span>Reset</button>
+            </div>
+            <div class="glass seg" id="cam-presets">
+              <button class="seg-btn" data-cam="bird">Bird's Eye</button>
+              <button class="seg-btn active" data-cam="core">Focus Core</button>
+              <button class="seg-btn" data-cam="wide">Wide View</button>
+            </div>
+          </div>
+
+          <div class="glass player" id="player">
+            <div class="player-row">
+              <div class="player-left">
+                <button class="play" id="play-btn" title="Play / pause (space)"><span class="ms" id="play-icon">play_arrow</span></button>
+                <div class="step-seg">
+                  <button id="era-prev" title="Previous era"><span class="ms">skip_previous</span></button>
+                  <button id="era-next" title="Next era"><span class="ms">skip_next</span></button>
+                </div>
+                <div class="commit-text">
+                  <b id="commit-subject">—</b>
+                  <span class="mono dim" id="commit-meta">—</span>
+                </div>
+              </div>
+              <div class="player-right">
+                <div class="speed mono" id="speed">
+                  <button data-speed="0.5">0.5x</button>
+                  <button data-speed="1" class="active">1x</button>
+                  <button data-speed="2">2x</button>
+                  <button data-speed="4">4x</button>
+                </div>
+                <div class="date-chip mono"><span class="ms accent">calendar_today</span><span id="commit-date">—</span></div>
+              </div>
+            </div>
+            <div class="track-row">
+              <span class="mono dim" id="track-start">—</span>
+              <input type="range" id="scrubber" min="0" max="0" value="0" step="1" aria-label="Timeline" />
+              <span class="mono dim" id="track-end">Present</span>
+            </div>
+          </div>
+
+          <div class="glass langs" id="langs"></div>
+        </div>
+      </section>
+
+      <!-- ========================== Explore Files ========================== -->
+      <section class="view page" id="view-files" data-view="files" hidden></section>
+
+      <!-- ======================= History & Evolution ======================= -->
+      <section class="view page" id="view-history" data-view="history" hidden></section>
+
+      <!-- =========================== Code Health =========================== -->
+      <section class="view page" id="view-health" data-view="health" hidden></section>
+    </main>
+
+    <div class="toast" id="toast" hidden></div>
 
     <script type="module" src="/src/main.js"></script>
   </body>

@@ -17,7 +17,7 @@ const gunzipAsync = promisify(gunzip);
 const MAX_CACHE_BYTES = 15 * 1024 * 1024;
 
 import { connectDb, isDbConnected } from './db.js';
-import { City } from './models/City.js';
+import { City, CITY_SCHEMA } from './models/City.js';
 import { parseRepoInput, cloneRepo, headSha } from './lib/repo.js';
 import { buildCity } from './engine/buildCity.js';
 
@@ -51,7 +51,7 @@ app.post('/api/analyze', async (req, res) => {
   if (isDbConnected()) {
     try {
       const cached = await City.findOne({ key: info.key }).lean();
-      if (cached?.dataGz) {
+      if (cached?.dataGz && cached.schema === CITY_SCHEMA) {
         const json = await gunzipAsync(toBuffer(cached.dataGz));
         return res.type('application/json').send(`{"city":${json.toString('utf8')}}`);
       }
@@ -88,6 +88,9 @@ async function runJob(jobId, info) {
         }),
     });
     city.repo = info.name;
+    // The repo's web page, so the UI can link files back to their host. The
+    // name alone can't: GitHub and GitLab both shorten to `owner/repo`.
+    city.webUrl = info.kind === 'url' ? info.url.replace(/\.git$/, '') : null;
     city.generatedAt = new Date().toISOString();
 
     if (isDbConnected()) {
@@ -100,7 +103,7 @@ async function runJob(jobId, info) {
           const dataGz = await gzipAsync(json);
           await City.updateOne(
             { key: info.key },
-            { $set: { key: info.key, repo: info.name, headSha: sha, dataGz, bytes: json.byteLength, createdAt: new Date() } },
+            { $set: { key: info.key, schema: CITY_SCHEMA, repo: info.name, headSha: sha, dataGz, bytes: json.byteLength, createdAt: new Date() } },
             { upsert: true }
           );
           console.log(`[cache] stored ${info.name} — ${mb(json.byteLength)} -> ${mb(dataGz.byteLength)} gzipped`);

@@ -21,28 +21,34 @@ const EPS = 0.004;     // height delta below which we stop rewriting a matrix
 // InstancedMesh, so a 10k-file repo costs ONE draw call instead of 10k.
 const UNIT = new THREE.BoxGeometry(1, 1, 1);
 
-// Warm amber rather than a hot orange: against pale model-white walls a
-// saturated heat colour reads as "this building is red", not "this file
-// changed recently".
-const HEAT_COLOR = new THREE.Color(0xffa257);
+// Accent colours follow the UI's design system, where colour is functional:
+// violet marks the thing you're working with, emerald marks activity, and
+// anything filtered out drops to a zinc grey that also drains its windows.
+const SELECT_COLOR = new THREE.Color(0xa78bfa);
+const HEAT_COLOR = new THREE.Color(0x34d399);
 const HOVER_COLOR = new THREE.Color(0xffffff);
+const MUTED_COLOR = new THREE.Color(0x1c1c21);
 
 /**
- * Material that renders like an urban plan: a crisp darker outline traced
- * around every face, and a lighter cap on roofs so the extrusions read as
- * footprints rather than raw boxes. Works with instancing because the effect
- * is derived from the box's own UVs and object-space normal, not per-object
- * geometry — so we keep the single-draw-call win.
+ * The city is drawn at night, to sit inside the Obsidian UI (near-black,
+ * zinc surfaces, violet/emerald accents). Each instance's colour is the
+ * building's ACCENT — its language colour, or violet when selected, emerald
+ * when just changed, grey when filtered out — and the shader derives the rest
+ * from it: a dark zinc body, an accent-coloured roof, and windows lit from
+ * inside. Keeping everything driven by one instance colour means hover,
+ * selection, heat and filtering all stay a single `setColorAt`, and the whole
+ * city is still one draw call per building shape.
  */
 const FLOOR_H = 0.8;  // world units per storey
 const BAY_W = 0.52;   // world units per structural bay (pilaster + glazing)
 
 function planMaterial({
-  edge = 0.45, edgeWidth = 1.9, roofLift = 0.0, windows = false, shapes = false, ...opts
+  mode = 'building', edgeWidth = 1.9, shapes = false, ...opts
 } = {}) {
+  const building = mode === 'building';
   const mat = new THREE.MeshStandardMaterial({
     color: 0xffffff, // modulated per-instance via instanceColor
-    roughness: 0.82,
+    roughness: 0.78,
     metalness: 0.0,
     ...opts,
   });
@@ -89,65 +95,90 @@ function planMaterial({
         vWorld = (modelMatrix * _wp).xyz;`
       );
 
-    const facade = windows ? `
-          // ---- Facade -------------------------------------------------
-          // Modelled as structural BAYS, not a grid of dots: a pale pilaster
-          // strip, a recessed glazed strip between each pair, and a floor
-          // slab line at every storey. That vertical rhythm is what makes an
-          // extrusion read as architecture rather than a patterned box.
-          //
-          // Both rhythms are measured in WORLD units, not UVs, so every
-          // building shares one storey height and one bay width — a tall file
-          // reads as a tower, a short one as a shed, and nothing stretches.
-          // Anchoring to world Y also means the facade stays put as a
-          // building grows on the timeline; new storeys stack on top.
+    const surface = building ? `
+          // ---- Building --------------------------------------------------
+          vec3 accent = diffuseColor.rgb;
+          // How "switched on" this building is. A filtered-out building gets a
+          // dim grey accent, which drains its windows and roof along with it.
+          float energy = max(max(accent.r, accent.g), accent.b);
+
           float side = 1.0 - step(0.9, abs(vObjN.y));
+          float roof = step(0.9, vObjN.y);
           float h = max(vScale.y, 1e-4);
 
-          // Which horizontal extent this face spans depends on its normal, and
-          // on how wide this particular wing is — otherwise a narrow wing
-          // crams a whole building's bays into half the width.
+          // Dark zinc body with a trace of the accent, so a district of one
+          // language still reads as related from the side.
+          vec3 wall = vec3(0.066, 0.068, 0.080) + accent * 0.055;
+          diffuseColor.rgb = wall;
+
+          // Facade as structural BAYS, not a grid of dots: pilaster strip,
+          // recessed glazing, slab line at every storey. Both rhythms are in
+          // WORLD units so every building shares one storey height and bay
+          // width, and the facade stays put as a building grows on the
+          // timeline — new storeys stack on top rather than rescaling.
           float faceW = mix(vScale.x, vScale.z, step(0.5, abs(vObjN.x))) * vWidthFrac;
-
-          float bx = fract(vUv.x * faceW / ${BAY_W.toFixed(2)});
-          float fy = fract((vWorld.y - 0.30) / ${FLOOR_H.toFixed(2)});
-
+          float bxRaw = vUv.x * faceW / ${BAY_W.toFixed(2)};
+          float fyRaw = (vWorld.y - 0.30) / ${FLOOR_H.toFixed(2)};
+          float bx = fract(bxRaw);
+          float fy = fract(fyRaw);
           float bw = fwidth(bx) * 1.5 + 0.02;
           float fw = fwidth(fy) * 1.5 + 0.03;
-
-          // Glazing occupies the middle of each bay; the rest is pilaster.
           float bay = smoothstep(0.28 - bw, 0.28 + bw, bx)
                     * (1.0 - smoothstep(0.84 - bw, 0.84 + bw, bx));
-          // Floor slab runs across the top of every storey, breaking the
-          // glazing into panels.
           float slab = smoothstep(0.80 - fw, 0.80 + fw, fy);
-
           float glass = bay * (1.0 - slab) * side;
-
-          // Solid plinth at street level, parapet on top, and no facade at all
-          // on anything too short to have storeys.
+          // Solid plinth, parapet, and no facade on anything too short to
+          // have storeys.
           glass *= smoothstep(0.18, 0.5, vWorld.y);
           glass *= 1.0 - smoothstep(h - 0.34, h - 0.10, vWorld.y);
           glass *= smoothstep(0.7, 1.5, h);
           gGlass = glass;
 
-          // Glazing reads darker and cooler than the pale wall around it.
-          vec3 glassCol = mix(diffuseColor.rgb * 0.55, vec3(0.30, 0.36, 0.44), 0.55);
-          diffuseColor.rgb = mix(diffuseColor.rgb, glassCol, glass * 0.80);
+          // Not every window is lit — a uniformly glowing grid reads as a
+          // texture, a scatter of lit and dark ones reads as a building with
+          // people in it. Each window cell hashes its own on/off state.
+          vec3 cell = vec3(floor(bxRaw) + floor(vWorld.x * 3.1),
+                           floor(fyRaw),
+                           floor(vWorld.z * 3.1) + vObjN.x * 7.0 + vObjN.z * 13.0);
+          float rnd = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
+          float lit = step(0.46, rnd);
 
-          // Real walls have thickness, so glazing sits in a reveal. Shade the
-          // head and one jamb of each opening to imply that depth — without
-          // it the window is a decal on a flat plane, which is the single
-          // biggest tell that a building is fake.
-          float head = smoothstep(0.80, 0.62, fy);          // under the lintel
-          float jamb = smoothstep(0.28, 0.40, bx);          // beside the pier
+          vec3 pane = mix(wall * 0.55, vec3(0.10, 0.11, 0.14), 0.5);
+          diffuseColor.rgb = mix(diffuseColor.rgb, pane, glass);
+
+          // Real walls have thickness, so glazing sits in a reveal: the head
+          // and one jamb fall into shadow. Without it a window is a decal.
+          float head = smoothstep(0.80, 0.62, fy);
+          float jamb = smoothstep(0.28, 0.40, bx);
           float reveal = glass * (1.0 - head * 0.55) * (1.0 - (1.0 - jamb) * 0.35);
-          diffuseColor.rgb *= 1.0 - (glass - reveal) * 0.62;
 
-          // A whisper of shading on the pilasters keeps them from going flat.
-          float pil = (1.0 - bay) * side * smoothstep(0.18, 0.5, vWorld.y);
-          diffuseColor.rgb *= 1.0 - pil * 0.05;
-    ` : '';
+          // Warm interior light, pulled toward the building's own accent.
+          vec3 room = mix(vec3(1.0, 0.83, 0.58), accent, 0.30);
+          totalEmissiveRadiance += room * lit * reveal * energy * 0.62;
+
+          // Accent-coloured roof: from above, the city reads as a language
+          // map; from the side, as dark towers with lit windows.
+          diffuseColor.rgb = mix(diffuseColor.rgb, accent * 0.9, roof * 0.82);
+          totalEmissiveRadiance += accent * roof * energy * 0.10;
+    ` : `
+          // ---- District plate ---------------------------------------------
+          // Dark ground zone; its tint arrives via the instance colour.
+    `;
+
+    const edges = building ? `
+          // Chamfered edges: perfectly sharp corners read as CG. One side of
+          // every border catches light, the other falls into shade.
+          float lit2 = min(dl, dt);
+          float shd  = min(dr, db);
+          float facing = step(lit2, shd);
+          vec3 catchLight = diffuseColor.rgb + vec3(0.07, 0.07, 0.09);
+          diffuseColor.rgb = mix(diffuseColor.rgb,
+                                 mix(diffuseColor.rgb * 0.55, catchLight, facing), e);
+    ` : `
+          // A thin lighter border around each zone, the way the UI separates
+          // surfaces with 1px outlines rather than shadows.
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.9 + vec3(0.05), e * 0.9);
+    `;
 
     shader.fragmentShader = shader.fragmentShader
       .replace(
@@ -161,55 +192,37 @@ function planMaterial({
         // the roughness/metalness stage further along the shader.
         float gGlass;`
       )
-      // Glass and masonry are different materials, not just different colours.
-      // Giving the glazing a low roughness and a little metalness lets it pick
-      // up the environment probe, which is what stops a facade reading as a
-      // painted-on pattern.
+      // Glazing is glass, not paint: smooth and slightly metallic so it
+      // catches the environment probe.
       .replace(
         '#include <roughnessmap_fragment>',
         `#include <roughnessmap_fragment>
-        roughnessFactor = mix(roughnessFactor, 0.14, gGlass);`
+        roughnessFactor = mix(roughnessFactor, 0.16, gGlass);`
       )
       .replace(
         '#include <metalnessmap_fragment>',
         `#include <metalnessmap_fragment>
-        metalnessFactor = mix(metalnessFactor, 0.62, gGlass);`
+        metalnessFactor = mix(metalnessFactor, 0.55, gGlass);`
       )
       .replace(
         '#include <color_fragment>',
         `#include <color_fragment>
         {
-          ${facade}
+          gGlass = 0.0;
+          ${surface}
 
-          // Perfectly sharp corners are a realism tell — real edges carry a
-          // small chamfer that catches light on one side and shade on the
-          // other. Rather than adding bevel geometry to every instance, the
-          // top/left borders are lifted and the bottom/right darkened, which
-          // reads as a chamfer from any angle and costs nothing.
           float dl = vUv.x, dr = 1.0 - vUv.x;
           float db = vUv.y, dt = 1.0 - vUv.y;
           float d  = min(min(dl, dr), min(db, dt));
-          // fwidth keeps the chamfer a constant thickness on screen.
+          // fwidth keeps edges a constant thickness on screen at any zoom.
           float w  = fwidth(d) * ${edgeWidth.toFixed(2)};
           float e  = 1.0 - smoothstep(0.0, max(w, 1e-5), d);
-          // Which border is nearest decides whether this edge is lit or shaded.
-          float lit = min(dl, dt);
-          float shd = min(dr, db);
-          float facing = step(lit, shd);
-          diffuseColor.rgb = mix(
-            diffuseColor.rgb,
-            diffuseColor.rgb * mix(${(1.0 - edge).toFixed(3)}, ${(1.0 + edge * 0.55).toFixed(3)}, facing),
-            e
-          );
-
-          // Roofs (object-space +Y) get a lighter cap.
-          float roof = step(0.9, vObjN.y);
-          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb + ${roofLift.toFixed(3)}, roof);
+          ${edges}
         }`
       );
   };
-  // Distinct key so three doesn't share a cached program with a different variant.
-  mat.customProgramCacheKey = () => `plan-${edge}-${edgeWidth}-${roofLift}-${windows}-${shapes}`;
+  // Distinct key so three doesn't share a cached program with another variant.
+  mat.customProgramCacheKey = () => `night-${mode}-${edgeWidth}-${shapes}`;
   return mat;
 }
 
@@ -236,6 +249,9 @@ export class City {
     this.data = data;
     this.t = 0;
     this.hovered = null;
+    this.selected = null;
+    this.heatOn = true;
+    this.itemByPath = new Map();
     this.birthQueue = [];
     this._birthCredit = 0;
 
@@ -271,7 +287,7 @@ export class City {
       if (!buckets[a].length) return null;
       const mesh = new THREE.InstancedMesh(
         geo,
-        planMaterial({ edge: 0.45, roofLift: 0.12, windows: true, shapes: true }),
+        planMaterial({ mode: 'building', shapes: true }),
         buckets[a].length
       );
       mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
@@ -290,20 +306,18 @@ export class City {
       buckets[a].forEach((i, gi) => {
         const b = list[i];
 
-        // Buildings are finished like an architectural scale model: pale,
-        // near-white masonry that lets the massing and the facade rhythm do
-        // the talking. The language hue survives only as a faint tint — the
-        // saturated version of GitHub's palette glares at city scale and
-        // flattens everything around it, and the district plates underneath
-        // already carry the colour coding. Hue and lightness are nudged per
-        // file so neighbours of one language stay individually readable.
+        // The instance colour is this building's ACCENT: the shader turns it
+        // into a lit roof and warm windows over a dark body. GitHub's palette
+        // is normalised into one lightness band so no language glares at
+        // night and none disappears, and hue is nudged per file so
+        // neighbours of one language stay individually readable.
         const base = new THREE.Color(b.color);
         base.getHSL(hsl);
         const j = hash(b.path);
         base.setHSL(
-          (hsl.h + (j - 0.5) * 0.05 + 1) % 1,
-          Math.min(0.20, hsl.s * 0.26),
-          clamp(0.80 + (j - 0.5) * 0.14, 0.70, 0.90)
+          (hsl.h + (j - 0.5) * 0.04 + 1) % 1,
+          clamp(hsl.s * 0.9, 0.35, 0.75),
+          clamp(0.62 + (j - 0.5) * 0.08, 0.55, 0.68)
         );
 
         const item = {
@@ -311,6 +325,7 @@ export class City {
           queued: false,
         };
         this.items[i] = item;
+        this.itemByPath.set(b.path, item);
         g.items[gi] = item;
         g.mesh.setColorAt(gi, base);
         this._writeMatrix(item, 0);
@@ -371,7 +386,7 @@ export class City {
 
     const plates = new THREE.InstancedMesh(
       UNIT,
-      planMaterial({ edge: 0.3, edgeWidth: 1.4, roofLift: 0.0 }),
+      planMaterial({ mode: 'plate', edgeWidth: 1.4, roughness: 0.95 }),
       sorted.length
     );
     plates.receiveShadow = true;
@@ -392,10 +407,10 @@ export class City {
       m.setPosition(d.x, y, d.z);
       plates.setMatrixAt(i, m);
 
-      // One hue per folder, strong enough to zone the map but kept below the
-      // buildings in lightness so the extrusions still read on top of it.
+      // One hue per folder, kept very dark — zones are ground, and on a
+      // near-black canvas the buildings standing on them carry the colour.
       const j = hash(d.path || d.name || String(i));
-      const c = new THREE.Color().setHSL(j, 0.5, 0.6 - Math.min(d.depth, 3) * 0.05);
+      const c = new THREE.Color().setHSL(j, 0.28, 0.085 + Math.min(d.depth, 3) * 0.018);
       this.plateBase[i] = c;
       plates.setColorAt(i, c);
       indexByPath.set(d.path, i);
@@ -432,14 +447,14 @@ export class City {
   _refreshPlates() {
     if (!this.plates) return;
     let dirty = false;
-    const dim = new THREE.Color(0x9aa1ac);
+    const dim = new THREE.Color(0x0c0c0f);
     const c = new THREE.Color();
     for (let i = 0; i < this.plateLive.length; i++) {
       const live = this.plateLive[i] > 0 ? 1 : 0;
       if (this.plateWasLive[i] === live) continue;
       this.plateWasLive[i] = live;
       c.copy(this.plateBase[i]);
-      if (!live) c.lerp(dim, 0.72);
+      if (!live) c.lerp(dim, 0.75);
       this.plates.setColorAt(i, c);
       dirty = true;
     }
@@ -472,7 +487,7 @@ export class City {
         x.targetH = target;
         x.dirty = true;
       }
-      const heat = loc > 0 && c >= 0 ? Math.max(0, 1 - (t - c) / HEAT_WINDOW) : 0;
+      const heat = this.heatOn && loc > 0 && c >= 0 ? Math.max(0, 1 - (t - c) / HEAT_WINDOW) : 0;
       if (heat !== x.heat) { x.heat = heat; x.colorDirty = true; }
       if (loc > 0) {
         alive++;
@@ -500,6 +515,79 @@ export class City {
     let n = 0;
     for (let i = 0; i < this.n; i++) if (locAt(this.items[i].b.history, t).loc > 0) n++;
     return n;
+  }
+
+  /** Select a building (by its data record or path), or clear with null. */
+  select(target) {
+    const b = typeof target === 'string' ? { path: target } : target;
+    const next = b ? this.itemByPath.get(b.path) || null : null;
+    if (next === this.selected) return next;
+    if (this.selected) this.selected.colorDirty = true;
+    this.selected = next;
+    if (next) next.colorDirty = true;
+    return next;
+  }
+
+  /**
+   * Show only the given languages; everything else drops to grey. Pass null
+   * to show everything. Filtering never hides a building — the city keeps its
+   * shape, so you can still see where the filtered-out code sits.
+   */
+  setLanguageFilter(langs) {
+    const keep = langs && langs.size ? langs : null;
+    for (const x of this.items) {
+      const muted = keep ? !keep.has(x.b.lang) : false;
+      if (muted !== !!x.muted) { x.muted = muted; x.colorDirty = true; }
+    }
+  }
+
+  /** Turn the emerald "just changed" glow on or off. */
+  setHeat(on) {
+    this.heatOn = !!on;
+    if (this.t != null) this.setCommit(this.t);
+  }
+
+  /**
+   * One label per top-level folder (falling back to the next level down when
+   * the repo has a single root folder), placed on the zone's front edge.
+   */
+  districtLabels() {
+    const ds = this.districts || [];
+    let pick = ds.filter((d) => d.depth === 1);
+    if (pick.length <= 1) {
+      const deeper = ds.filter((d) => d.depth === 2);
+      if (deeper.length > 1) pick = deeper;
+    }
+    return pick.map((d) => {
+      const c = new THREE.Color().setHSL(hash(d.path || d.name || ''), 0.55, 0.62);
+      return {
+        text: d.name || d.path.split('/').pop(),
+        x: d.x, y: 0.5, z: d.z + d.d / 2,
+        color: `#${c.getHexString()}`,
+      };
+    });
+  }
+
+  /** Centre and footprint of the zone holding the most code — "downtown". */
+  core() {
+    const ds = (this.districts || []).filter((d) => d.depth === 1);
+    if (!ds.length) return { x: 0, z: 0, size: this.radius };
+    const weight = new Map();
+    for (const x of this.items) {
+      const top = x.b.path.includes('/') ? x.b.path.split('/')[0] : null;
+      if (top) weight.set(top, (weight.get(top) || 0) + x.b.maxLoc);
+    }
+    const best = ds.reduce((a, d) => ((weight.get(d.path) || 0) > (weight.get(a.path) || 0) ? d : a), ds[0]);
+    return { x: best.x, z: best.z, size: Math.max(best.w, best.d) };
+  }
+
+  /** World-space top-centre of a building as it stands now, for camera focus. */
+  anchorOf(building) {
+    const x = this.itemByPath.get(building.path);
+    if (!x) return null;
+    const { plot } = x.b;
+    return { x: plot.x, y: Math.max(x.h, this.heightForLoc(x.b.maxLoc) * 0.5), z: plot.z,
+      size: Math.max(plot.w, plot.d) };
   }
 
   /** `item` is the record handed back by the hit resolver, or -1 / null. */
@@ -563,9 +651,15 @@ export class City {
       }
 
       if (x.colorDirty) {
-        this._c.copy(x.base);
-        if (x.heat > 0.01) this._c.lerp(HEAT_COLOR, Math.min(0.5, x.heat * 0.55));
-        if (x === this.hovered) this._c.lerp(HOVER_COLOR, 0.6);
+        if (x === this.selected) {
+          this._c.copy(SELECT_COLOR);
+        } else if (x.muted) {
+          this._c.copy(MUTED_COLOR);
+        } else {
+          this._c.copy(x.base);
+          if (x.heat > 0.01) this._c.lerp(HEAT_COLOR, Math.min(0.75, x.heat * 0.8));
+        }
+        if (x === this.hovered) this._c.lerp(HOVER_COLOR, x.muted ? 0.15 : 0.35);
         g.mesh.setColorAt(x.gi, this._c);
         x.colorDirty = false;
         g.colorDirty = true;
@@ -592,6 +686,8 @@ export class City {
     this.scene.setHoverTargets([]);
     this.scene.hitResolver = null;
     this.hovered = null;
+    this.selected = null;
+    this.itemByPath.clear();
     for (const g of this.groups || []) {
       if (!g) continue;
       this.scene.cityGroup.remove(g.mesh);
@@ -611,7 +707,7 @@ export class City {
 }
 
 /** Binary search: last history point with c <= t. */
-function locAt(history, t) {
+export function locAt(history, t) {
   if (!history.length || t < history[0].c) return { loc: 0, c: -1 };
   let lo = 0, hi = history.length - 1, ans = 0;
   while (lo <= hi) {

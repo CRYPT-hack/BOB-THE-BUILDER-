@@ -5,6 +5,9 @@ import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
 import { GTAOPass } from 'three/addons/postprocessing/GTAOPass.js';
 import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+const BG = 0x09090b; // the UI's background token — the city sits on the page, not in a box
 
 // The 3D stage: renderer, camera, lights, ground, orbit controls, hover
 // raycasting, and a render loop that fans out to per-frame subscribers.
@@ -17,7 +20,10 @@ export class Scene {
     this.hovered = -1;
     this.onHover = null;      // (building, mouseEvent) => void
     this.onHoverIndex = null; // (instanceIndex) => void
+    this.onSelect = null;     // (building | null) => void — a click, not a drag
     this.hitResolver = null;  // (intersection) => { building, index } | null
+    this._resolved = null;    // what the pointer is over right now
+    this._flight = null;      // an in-progress camera move
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2(-2, -2);
@@ -41,7 +47,9 @@ export class Scene {
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     pmrem.compileEquirectangularShader();
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    this.scene.environmentIntensity = 0.45;
+    // Low at night: enough for glazing to catch a sheen, not enough to
+    // light the city like an overcast afternoon.
+    this.scene.environmentIntensity = 0.22;
     pmrem.dispose();
   }
 
@@ -106,16 +114,17 @@ export class Scene {
     this.renderer.setSize(w, h, false);
     this.composer.setSize(w, h);
     if (this.gtao) this.gtao.setSize(w, h);
+    if (this.labels) this.labels.setSize(w, h);
   }
 
   _init() {
     this.scene = new THREE.Scene();
-    // A planning drawing reads on paper, not in a void: bright ground, hazy
-    // horizon, colour doing the talking.
-    this.scene.background = new THREE.Color(0xdfe4ec);
-    // Fog starts beyond the far edge of a framed city, so haze reads as
-    // atmosphere on the horizon rather than washing out the plan itself.
-    this.scene.fog = new THREE.Fog(0xdfe4ec, 340, 1100);
+    // The city is drawn at night on the page's own background colour, so the
+    // canvas has no visible edge — the UI floats over the city rather than
+    // framing a picture of one. Fog fades the far ground into that same
+    // colour instead of into a horizon line.
+    this.scene.background = new THREE.Color(BG);
+    this.scene.fog = new THREE.Fog(BG, 260, 900);
 
     const { clientWidth: w, clientHeight: h } = this.container;
     this.camera = new THREE.PerspectiveCamera(58, w / h, 0.1, 2000);
@@ -126,10 +135,20 @@ export class Scene {
     this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     this.renderer.shadowMap.enabled = true;
     this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    // Tone mapping keeps the saturated zone colours from blowing out to white.
+    // Tone mapping keeps lit windows and accent roofs from clipping to white.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.92;
+    this.renderer.toneMappingExposure = 1.05;
     this.container.appendChild(this.renderer.domElement);
+
+    // Folder names float over their districts. CSS2D keeps them as real DOM
+    // text — crisp at any zoom and styled by the same stylesheet as the UI.
+    this.labels = new CSS2DRenderer();
+    this.labels.setSize(w, h);
+    Object.assign(this.labels.domElement.style, {
+      position: 'absolute', inset: '0', pointerEvents: 'none',
+    });
+    this.labels.domElement.className = 'label-layer';
+    this.container.appendChild(this.labels.domElement);
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
@@ -143,11 +162,12 @@ export class Scene {
   }
 
   _lights() {
-    // Soft overcast key light: crisp enough for readable shadows between
-    // blocks, flat enough that every zone colour stays legible.
-    this.scene.add(new THREE.AmbientLight(0xffffff, 0.5));
+    // Night lighting: a cool moon as the key so the massing still reads and
+    // throws shadow, a violet rim from behind to separate towers from the
+    // dark ground, and very little ambient — the windows do the rest.
+    this.scene.add(new THREE.AmbientLight(0x8a90b8, 0.35));
 
-    const key = new THREE.DirectionalLight(0xfff6e8, 1.05);
+    const key = new THREE.DirectionalLight(0xb4c2ff, 1.1);
     key.position.set(90, 170, 70);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -162,11 +182,11 @@ export class Scene {
     key.shadow.normalBias = 0.5;
     this.scene.add(key);
 
-    const fill = new THREE.DirectionalLight(0xcfe0ff, 0.35);
-    fill.position.set(-70, 60, -60);
-    this.scene.add(fill);
+    const rim = new THREE.DirectionalLight(0xa78bfa, 0.55);
+    rim.position.set(-80, 50, -90);
+    this.scene.add(rim);
 
-    this.scene.add(new THREE.HemisphereLight(0xeaf2ff, 0xa8aeb8, 0.35));
+    this.scene.add(new THREE.HemisphereLight(0x3a3f66, 0x050507, 0.45));
   }
 
   _ground() {
@@ -174,11 +194,70 @@ export class Scene {
     // the gaps the treemap leaves between them become the street grid.
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(2400, 2400),
-      new THREE.MeshStandardMaterial({ color: 0xaeb5c0, roughness: 1, metalness: 0 })
+      new THREE.MeshStandardMaterial({ color: 0x0b0b0e, roughness: 1, metalness: 0 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
+
+    // A faint survey grid, matching the dotted-grid floor in the design.
+    const grid = new THREE.GridHelper(2400, 300, 0x1b1b22, 0x131318);
+    grid.position.y = 0.01;
+    grid.material.transparent = true;
+    grid.material.opacity = 0.75;
+    this.scene.add(grid);
+  }
+
+  /** Replace the floating district labels. `items` = [{ text, x, z, y }]. */
+  setLabels(items) {
+    for (const o of this._labelObjects || []) this.cityGroup.remove(o);
+    this._labelObjects = items.map((it) => {
+      const el = document.createElement('div');
+      el.className = 'district-label';
+      const dot = document.createElement('i');
+      dot.style.background = it.color;
+      const name = document.createElement('span');
+      name.textContent = it.text;
+      el.append(dot, name);
+      const obj = new CSS2DObject(el);
+      obj.position.set(it.x, it.y ?? 0.4, it.z);
+      this.cityGroup.add(obj);
+      return obj;
+    });
+  }
+
+  /**
+   * Glide the camera to look at `target` from `distance` away, keeping the
+   * current viewing direction unless an explicit `dir` is given. Eased over a
+   * short flight so a jump across the city stays spatially legible.
+   */
+  flyTo(target, distance, dir = null, duration = 0.8) {
+    const t = new THREE.Vector3(target.x, target.y || 0, target.z);
+    const d = (dir ? new THREE.Vector3(dir.x, dir.y, dir.z)
+      : this.camera.position.clone().sub(this.controls.target)).normalize();
+    this._flight = {
+      p0: this.camera.position.clone(), t0: this.controls.target.clone(),
+      p1: t.clone().add(d.multiplyScalar(distance)), t1: t,
+      k: 0, dur: duration,
+    };
+  }
+
+  /** Dolly in (factor < 1) or out (factor > 1) around the current target. */
+  zoom(factor) {
+    const off = this.camera.position.clone().sub(this.controls.target);
+    const len = THREE.MathUtils.clamp(off.length() * factor,
+      this.controls.minDistance, this.controls.maxDistance);
+    this.flyTo(this.controls.target, len, off, 0.35);
+  }
+
+  _stepFlight(dt) {
+    const f = this._flight;
+    if (!f) return;
+    f.k = Math.min(1, f.k + dt / f.dur);
+    const e = f.k < 0.5 ? 4 * f.k ** 3 : 1 - (-2 * f.k + 2) ** 3 / 2; // easeInOutCubic
+    this.camera.position.lerpVectors(f.p0, f.p1, e);
+    this.controls.target.lerpVectors(f.t0, f.t1, e);
+    if (f.k >= 1) this._flight = null;
   }
 
   _events() {
@@ -195,6 +274,22 @@ export class Scene {
       if (this.onHover) this.onHover(null);
       if (this.onHoverIndex) this.onHoverIndex(-1);
     });
+
+    // A click selects; a drag orbits. OrbitControls owns the drag, so only a
+    // press that barely moved counts as a click.
+    let down = null;
+    el.addEventListener('pointerdown', (e) => { down = { x: e.clientX, y: e.clientY }; });
+    el.addEventListener('pointerup', (e) => {
+      if (!down) return;
+      const moved = Math.hypot(e.clientX - down.x, e.clientY - down.y);
+      down = null;
+      if (moved > 5 || !this.onSelect) return;
+      this._mouseMove(e);
+      this._raycast();
+      this.onSelect(this._resolved ? this._resolved.building : null);
+    });
+    // Any manual orbit cancels an automated camera flight.
+    this.controls.addEventListener('start', () => { this._flight = null; });
   }
 
   _resize() {
@@ -225,11 +320,13 @@ export class Scene {
       }
     }
 
+    this._resolved = resolved;
     const key = resolved ? resolved.index : -1;
     if (key !== this.hovered) {
       this.hovered = key;
       if (this.onHoverIndex) this.onHoverIndex(key);
-      this.container.style.cursor = key >= 0 ? 'pointer' : 'default';
+      // `index` is a building record, not a number, so test for presence.
+      this.container.style.cursor = resolved ? 'pointer' : '';
     }
 
     this.onHover(resolved ? resolved.building : null, this._mouseEvent);
@@ -264,8 +361,12 @@ export class Scene {
     requestAnimationFrame(() => this._animate());
     const dt = this._clock.getDelta();
     for (const cb of this.frameCallbacks) cb(dt);
+    this._stepFlight(dt);
     this.controls.update();
+    // Another view is on screen: keep the city's clock running, skip the GPU work.
+    if (this.paused) return;
     this._raycast();
     this.render();
+    this.labels.render(this.scene, this.camera);
   }
 }

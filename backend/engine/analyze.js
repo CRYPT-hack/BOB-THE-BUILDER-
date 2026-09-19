@@ -51,7 +51,9 @@ export function analyzeRepo(repoPath, opts = {}) {
     const args = [
       '-c', 'core.quotePath=false',
       'log', '--reverse', '--no-renames', '--numstat',
-      '--pretty=format:@@C@@%H\x1f%at\x1f%an',
+      // %s is the subject line, so the timeline can say what a commit did
+      // rather than only who made it and when.
+      '--pretty=format:@@C@@%H\x1f%at\x1f%an\x1f%s',
     ];
     const git = spawn('git', args, { cwd: repoPath, windowsHide: true });
 
@@ -69,8 +71,13 @@ export function analyzeRepo(repoPath, opts = {}) {
 
     rl.on('line', (line) => {
       if (line.startsWith('@@C@@')) {
-        const [sha, ts, author] = line.slice(5).split('\x1f');
-        commits.push({ sha, ts: Number(ts) || 0, author: author || 'unknown' });
+        const [sha, ts, author, ...rest] = line.slice(5).split('\x1f');
+        commits.push({
+          sha,
+          ts: Number(ts) || 0,
+          author: author || 'unknown',
+          subject: rest.join('\x1f'),
+        });
         ci = commits.length - 1;
         if (onProgress && ci % 5000 === 0 && ci > 0) onProgress(ci);
         return;
@@ -90,9 +97,21 @@ export function analyzeRepo(repoPath, opts = {}) {
 
       let f = files.get(path);
       if (!f) {
-        f = { path, lang: getLanguageFromPath(path), history: [], _loc: 0, _prev: null, maxLoc: 0, birth: ci, death: null };
+        f = {
+          path, lang: getLanguageFromPath(path), history: [],
+          _loc: 0, _prev: null, maxLoc: 0, birth: ci, death: null,
+          _first: ci, _last: ci, touches: 0, _authors: new Map(),
+        };
         files.set(path, f);
       }
+      // Every numstat line is one commit touching this file, and the commit's
+      // author is already known — so per-file authorship falls out of the same
+      // pass for free, with no `git blame`.
+      f.touches++;
+      f._last = ci;
+      const who = commits[ci].author;
+      f._authors.set(who, (f._authors.get(who) || 0) + 1);
+
       f._loc = Math.max(0, f._loc + added - deleted);
       if (f._loc > f.maxLoc) f.maxLoc = f._loc;
       // Compress inline: only record points where the line count actually moved.
@@ -113,8 +132,24 @@ export function analyzeRepo(repoPath, opts = {}) {
       for (const f of files.values()) {
         f.birth = f.history.length ? f.history[0].c : 0;
         if (f._loc === 0 && f.history.length) f.death = f.history[f.history.length - 1].c;
+
+        // The person who touched the file most is its de facto maintainer.
+        let top = null, topN = 0;
+        for (const [who, n] of f._authors) if (n > topN) { top = who; topN = n; }
+        f.topAuthor = top;
+        f.topAuthorShare = f.touches ? topN / f.touches : 0;
+        f.contributors = f._authors.size;
+        f.creator = commits[f._first] ? commits[f._first].author : null;
+        // Timestamps, not commit indices: buildCity may resample the timeline
+        // onto fewer frames, and an index would then point at the wrong step.
+        f.createdAt = commits[f._first] ? commits[f._first].ts : 0;
+        f.lastTouchedAt = commits[f._last] ? commits[f._last].ts : 0;
+
         delete f._loc;
         delete f._prev;
+        delete f._authors;
+        delete f._first;
+        delete f._last;
       }
       resolve({ commits, files: [...files.values()] });
     };

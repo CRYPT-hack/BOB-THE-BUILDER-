@@ -1,11 +1,16 @@
-// Drives the commit playhead: play/pause, scrub, and speed. On every frame it
-// advances a floating playhead while playing, and whenever the integer commit
-// index changes it tells the City to grow/shrink toward that commit's state.
+// Drives the commit playhead: play/pause, scrub, speed, and stepping between
+// eras. On every frame it advances a floating playhead while playing, and
+// whenever the integer commit index changes it tells the City to grow toward
+// that commit's state and notifies anything else following the playhead.
+
+import { eras, date, year } from './insights.js';
 
 // Roughly how long a full playthrough should take at 1x, whatever the repo.
 const PLAYTHROUGH_SECONDS = 100;
 // Floor so a tiny repo doesn't crawl one commit every two seconds.
 const MIN_COMMITS_PER_SEC = 1.5;
+
+const $ = (id) => document.getElementById(id);
 
 export class Timeline {
   constructor(city, scene, data) {
@@ -13,6 +18,8 @@ export class Timeline {
     this.data = data;
     this.commits = data.commits;
     this.last = Math.max(0, this.commits.length - 1);
+    this.eras = eras(data);
+    this.listeners = new Set();
 
     this.playhead = 0;
     this.commit = -1;
@@ -24,40 +31,53 @@ export class Timeline {
     this.speedMul = 1;
 
     this.el = {
-      play: document.getElementById('play-btn'),
-      scrub: document.getElementById('scrubber'),
-      commit: document.getElementById('tl-commit'),
-      date: document.getElementById('tl-date'),
-      author: document.getElementById('tl-author'),
-      alive: document.getElementById('tl-alive'),
-      speed: document.getElementById('speed'),
-      panel: document.getElementById('timeline'),
+      play: $('play-btn'),
+      icon: $('play-icon'),
+      scrub: $('scrubber'),
+      subject: $('commit-subject'),
+      meta: $('commit-meta'),
+      date: $('commit-date'),
+      speed: $('speed'),
+      prev: $('era-prev'),
+      next: $('era-next'),
     };
-
     this.el.scrub.max = String(this.last);
-    this.el.panel.classList.remove('hidden');
+    $('track-start').textContent = year(this.commits[0]?.ts);
+    $('track-end').textContent = 'Present';
+
+    this._on = [
+      [this.el.play, 'click', () => this.toggle()],
+      [this.el.scrub, 'input', (e) => {
+        this.pause();
+        this.setPlayhead(Number(e.target.value));
+        this.city.snap(); // dragging should land on the state instantly
+      }],
+      [this.el.speed, 'click', (e) => {
+        const b = e.target.closest('button[data-speed]');
+        if (!b) return;
+        this.speedMul = Number(b.dataset.speed);
+        for (const x of this.el.speed.children) x.classList.toggle('active', x === b);
+      }],
+      [this.el.prev, 'click', () => this.stepEra(-1)],
+      [this.el.next, 'click', () => this.stepEra(1)],
+    ];
+    for (const [el, ev, fn] of this._on) el.addEventListener(ev, fn);
 
     this._unsub = scene.onFrame((dt) => this._advance(dt));
-    this._onPlay = () => this.toggle();
-    this._onScrub = (e) => {
-      this.pause();
-      this.setPlayhead(Number(e.target.value));
-      this.city.snap(); // dragging should land on the state instantly
-    };
-    this._onSpeed = (e) => { this.speedMul = Number(e.target.value); };
-    this.el.play.addEventListener('click', this._onPlay);
-    this.el.scrub.addEventListener('input', this._onScrub);
-    this.el.speed.addEventListener('change', this._onSpeed);
-
     this.setPlayhead(0);
   }
 
   dispose() {
     if (this._unsub) this._unsub();
     this.pause();
-    this.el.play.removeEventListener('click', this._onPlay);
-    this.el.scrub.removeEventListener('input', this._onScrub);
-    this.el.speed.removeEventListener('change', this._onSpeed);
+    for (const [el, ev, fn] of this._on) el.removeEventListener(ev, fn);
+    this.listeners.clear();
+  }
+
+  /** Subscribe to commit changes: fn(commitIndex, aliveCount). */
+  onChange(fn) {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
   }
 
   toggle() { this.playing ? this.pause() : this.play(); }
@@ -66,17 +86,37 @@ export class Timeline {
     // Restart from the beginning if parked at the end.
     if (this.playhead >= this.last) this.setPlayhead(0);
     this.playing = true;
-    this.el.play.textContent = '⏸';
+    this.el.icon.textContent = 'pause';
+    this._emit();
   }
 
   pause() {
     this.playing = false;
-    this.el.play.textContent = '▶';
+    this.el.icon.textContent = 'play_arrow';
+    this._emit();
+  }
+
+  /** Jump to a commit and settle there immediately. */
+  seek(idx) {
+    this.pause();
+    this.setPlayhead(idx);
+    this.city.snap();
+  }
+
+  /** Jump to the start of the previous or next era. */
+  stepEra(dir) {
+    if (!this.eras.length) return;
+    const cur = Math.floor(this.playhead);
+    const starts = this.eras.map((e) => e.from).concat(this.last);
+    const target = dir > 0
+      ? starts.find((s) => s > cur) ?? this.last
+      : [...starts].reverse().find((s) => s < cur) ?? 0;
+    this.seek(target);
   }
 
   setPlayhead(p) {
     this.playhead = Math.max(0, Math.min(this.last, p));
-    this.el.scrub.value = String(Math.round(this.playhead));
+    this._syncTrack();
     this._commitChanged(Math.floor(this.playhead));
   }
 
@@ -93,29 +133,37 @@ export class Timeline {
       this.playhead = this.last;
       this.pause();
     }
-    this.el.scrub.value = String(Math.round(this.playhead));
+    this._syncTrack();
     this._commitChanged(Math.floor(this.playhead));
+  }
+
+  _syncTrack() {
+    this.el.scrub.value = String(Math.round(this.playhead));
+    const pct = this.last ? (this.playhead / this.last) * 100 : 100;
+    this.el.scrub.style.setProperty('--pct', `${pct}%`);
   }
 
   _commitChanged(idx) {
     if (idx === this.commit) return;
     this.commit = idx;
-    const alive = this.city.setCommit(idx);
-    this._renderMeta(idx, alive);
+    this.alive = this.city.setCommit(idx);
+    this._renderMeta(idx);
+    this._emit();
   }
 
-  _renderMeta(idx, alive) {
+  _emit() {
+    for (const fn of this.listeners) fn(this.commit, this.alive, this.playing);
+  }
+
+  _renderMeta(idx) {
     const c = this.commits[idx];
-    // When a long history is sampled, each step is a frame, not a single commit.
-    const label = this.data.sampled ? 'frame' : 'commit';
-    this.el.commit.textContent =
-      `${label} ${(idx + 1).toLocaleString()} / ${this.commits.length.toLocaleString()}`;
-    this.el.alive.textContent = `${alive} building${alive === 1 ? '' : 's'}`;
-    if (c) {
-      const d = new Date(c.ts * 1000);
-      this.el.date.textContent = isNaN(d) ? '—'
-        : d.toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' });
-      this.el.author.textContent = c.author || '—';
-    }
+    if (!c) return;
+    // Sampled histories step by frame, not by single commit.
+    const unit = this.data.sampled ? 'frame' : 'commit';
+    this.el.subject.textContent = c.subject || `${unit} ${idx + 1}`;
+    this.el.subject.title = c.subject || '';
+    this.el.meta.textContent =
+      `${unit} ${(idx + 1).toLocaleString()}/${this.commits.length.toLocaleString()} · ${c.sha.slice(0, 7)} · by ${c.author}`;
+    this.el.date.textContent = date(c.ts);
   }
 }

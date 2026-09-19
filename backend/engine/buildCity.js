@@ -2,6 +2,7 @@
 // This JSON is the single contract between the backend and the Three.js frontend.
 
 import path from 'node:path';
+import { spawn } from 'node:child_process';
 import { analyzeRepo } from './analyze.js';
 import { layoutTreemap } from './layout.js';
 import { getColorForPath } from './languages.js';
@@ -78,6 +79,13 @@ export async function buildCity(repoPath, opts = {}) {
           : null,
         maxLoc: f.maxLoc,
         history,
+        touches: f.touches,
+        contributors: f.contributors,
+        topAuthor: f.topAuthor,
+        topAuthorShare: +f.topAuthorShare.toFixed(3),
+        creator: f.creator,
+        createdAt: f.createdAt,
+        lastTouchedAt: f.lastTouchedAt,
       };
     })
     .filter((b) => b.plot);
@@ -86,14 +94,32 @@ export async function buildCity(repoPath, opts = {}) {
 
   return {
     repo: path.basename(path.resolve(repoPath)),
+    branch: await currentBranch(repoPath),
     commitCount: commits.length,            // true number of commits
     frameCount: timeline.length,            // steps on the scrubber
     sampled: Boolean(frames),
-    // Trim SHAs; keep timestamp + author for the timeline HUD.
-    commits: timeline.map((c) => ({ sha: c.sha.slice(0, 10), ts: c.ts, author: c.author })),
+    // Trim SHAs and cap subjects: a 6,000-commit repo would otherwise ship
+    // megabytes of commit prose for a one-line label in the player.
+    commits: timeline.map((c) => ({
+      sha: c.sha.slice(0, 10),
+      ts: c.ts,
+      author: c.author,
+      subject: (c.subject || '').slice(0, 90),
+    })),
     districts,
     buildings,
   };
+}
+
+/** Branch the analysed history belongs to (a bare clone has one: the default). */
+function currentBranch(repoPath) {
+  return new Promise((resolve) => {
+    const git = spawn('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: repoPath, windowsHide: true });
+    let out = '';
+    git.stdout.on('data', (d) => { out += d; });
+    git.on('error', () => resolve('HEAD'));
+    git.on('close', () => resolve(out.trim() || 'HEAD'));
+  });
 }
 
 /** Fraction of the timeline a file existed (loc > 0). */
