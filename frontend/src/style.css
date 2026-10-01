@@ -691,3 +691,47 @@ input[type=range]::-moz-range-thumb {
   .chart-card { padding: 20px 16px; }
   .section-head { flex-wrap: wrap; }
 }
+
+/* ---------- Custom UI polish ---------- */
+
+.page {
+  scroll-behavior: smooth;
+  scrollbar-width: thin;
+  scrollbar-color: var(--line-2) var(--bg);
+}
+
+.page::-webkit-scrollbar {
+  width: 8px;
+}
+
+.page::-webkit-scrollbar-track {
+  background: var(--bg);
+}
+
+.page::-webkit-scrollbar-thumb {
+  background: var(--line-2);
+  border-radius: 999px;
+}
+
+.page::-webkit-scrollbar-thumb:hover {
+  background: var(--violet);
+}
+
+.card.clickable {
+  transition:
+    transform .18s var(--ease),
+    border-color .18s var(--ease),
+    background .18s var(--ease);
+}
+
+.card.clickable:hover {
+  transform: translateY(-2px);
+}
+
+.btn:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.btn:active:not(:disabled) {
+  transform: translateY(0);
+}
