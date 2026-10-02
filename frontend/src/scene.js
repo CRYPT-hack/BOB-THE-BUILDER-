@@ -7,7 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-const BG = 0xf5f0e8; // the UI's warm terracotta background — sandy sky that fades into the city grid
+const BG = 0x121019; // Minecraft obsidian background
 
 // The 3D stage: renderer, camera, lights, ground, orbit controls, hover
 // raycasting, and a render loop that fans out to per-frame subscribers.
@@ -44,7 +44,6 @@ export class Scene {
    * pick up — which is what separates "material" from "coloured box".
    */
   _environment() {
-    if (!this.webglAvailable) return;
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     pmrem.compileEquirectangularShader();
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -61,7 +60,6 @@ export class Scene {
    * read as solid rather than as decals floating on a plane.
    */
   _composer() {
-    if (!this.webglAvailable) return;
     const { clientWidth: w, clientHeight: h } = this.container;
 
     // The renderer's own `antialias: true` only applies to the default
@@ -106,7 +104,6 @@ export class Scene {
 
   /** Render through the composer. Use this instead of renderer.render(). */
   render() {
-    if (!this.webglAvailable) return;
     this.composer.render();
   }
 
@@ -115,7 +112,7 @@ export class Scene {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h, false);
-    if (this.composer) this.composer.setSize(w, h);
+    this.composer.setSize(w, h);
     if (this.gtao) this.gtao.setSize(w, h);
     if (this.labels) this.labels.setSize(w, h);
   }
@@ -133,26 +130,14 @@ export class Scene {
     this.camera = new THREE.PerspectiveCamera(58, w / h, 0.1, 2000);
     this.camera.position.set(90, 90, 90);
 
-    try {
-      this.renderer = new THREE.WebGLRenderer({ antialias: true });
-      this.webglAvailable = true;
-      this.renderer.setSize(w, h);
-      this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-      this.renderer.shadowMap.enabled = true;
-      this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-      this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-      this.renderer.toneMappingExposure = 1.05;
-    } catch {
-      this.webglAvailable = false;
-      this.renderer = { domElement: document.createElement('canvas'), setSize() {} };
-      this.renderer.domElement.setAttribute('aria-hidden', 'true');
-      this.renderer.domElement.className = 'scene-fallback-canvas';
-      this.container.appendChild(this.renderer.domElement);
-      const fallback = document.createElement('div');
-      fallback.className = 'scene-fallback';
-      fallback.innerHTML = '<strong>3D city view unavailable</strong><span>This browser could not create a WebGL context. Explore the repository data in the other views above.</span>';
-      this.container.appendChild(fallback);
-    }
+    this.renderer = new THREE.WebGLRenderer({ antialias: true });
+    this.renderer.setSize(w, h);
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.shadowMap.enabled = true;
+    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    // Tone mapping keeps lit windows and accent roofs from clipping to white.
+    this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    this.renderer.toneMappingExposure = 1.05;
     this.container.appendChild(this.renderer.domElement);
 
     // Folder names float over their districts. CSS2D keeps them as real DOM
@@ -177,12 +162,12 @@ export class Scene {
   }
 
   _lights() {
-    // Warm daytime lighting: a golden sun as the key light, a soft warm fill
-    // from the side, and a hemisphere balancing the warm sandy ground against
-    // the pale sky above.
-    this.scene.add(new THREE.AmbientLight(0xfff8e8, 0.80));
+    // Night lighting: a cool moon as the key so the massing still reads and
+    // throws shadow, a violet rim from behind to separate towers from the
+    // dark ground, and very little ambient — the windows do the rest.
+    this.scene.add(new THREE.AmbientLight(0x8a90b8, 0.35));
 
-    const key = new THREE.DirectionalLight(0xfff5d0, 1.80);
+    const key = new THREE.DirectionalLight(0xb4c2ff, 1.1);
     key.position.set(90, 170, 70);
     key.castShadow = true;
     key.shadow.mapSize.set(2048, 2048);
@@ -197,11 +182,11 @@ export class Scene {
     key.shadow.normalBias = 0.5;
     this.scene.add(key);
 
-    const rim = new THREE.DirectionalLight(0xf0a050, 0.45);
+    const rim = new THREE.DirectionalLight(0xa78bfa, 0.55);
     rim.position.set(-80, 50, -90);
     this.scene.add(rim);
 
-    this.scene.add(new THREE.HemisphereLight(0xc8dcf0, 0xc8a878, 0.55));
+    this.scene.add(new THREE.HemisphereLight(0x3a3f66, 0x050507, 0.45));
   }
 
   _ground() {
@@ -209,17 +194,17 @@ export class Scene {
     // the gaps the treemap leaves between them become the street grid.
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(2400, 2400),
-      new THREE.MeshStandardMaterial({ color: 0xc8a878, roughness: 0.95, metalness: 0.02 })
+      new THREE.MeshStandardMaterial({ color: 0x0b0b0e, roughness: 1, metalness: 0 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // A warm sandy survey grid, matching the terracotta theme.
-    const grid = new THREE.GridHelper(2400, 300, 0xb09070, 0xd4c0a0);
+    // A faint survey grid, matching the dotted-grid floor in the design.
+    const grid = new THREE.GridHelper(2400, 300, 0x1b1b22, 0x131318);
     grid.position.y = 0.01;
     grid.material.transparent = true;
-    grid.material.opacity = 0.45;
+    grid.material.opacity = 0.75;
     this.scene.add(grid);
   }
 

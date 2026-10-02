@@ -552,7 +552,7 @@
       }
     }
 
-    // Action button visual click reaction
+    // Action button - redirect to city view
     const buildBtn = document.getElementById('build-btn');
     if (buildBtn) {
       buildBtn.addEventListener('click', () => {
@@ -560,10 +560,12 @@
         const statusText = document.getElementById('craft-status');
         statusText.innerText = `Crafting world chunk for "${repo}"... Please wait!`;
         buildBtn.innerText = 'CRAFTING... ⏳';
+        
+        // Store repo in localStorage and redirect
+        localStorage.setItem('targetRepo', repo);
         setTimeout(() => {
-          buildBtn.innerHTML = '<span>BUILD MY CITY</span> <span class="group-hover:translate-x-1 transition-transform">⛏</span>';
-          statusText.innerText = `City Generated! 4,281 blocks placed across 14 districts.`;
-        }, 1200);
+          window.location.href = '/city.html';
+        }, 500);
       });
     }
   </script>

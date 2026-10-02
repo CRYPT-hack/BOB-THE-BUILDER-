@@ -21,21 +21,20 @@ const EPS = 0.004;     // height delta below which we stop rewriting a matrix
 // InstancedMesh, so a 10k-file repo costs ONE draw call instead of 10k.
 const UNIT = new THREE.BoxGeometry(1, 1, 1);
 
-// Accent colours follow the UI's design system, where colour is functional:
-// crimson red marks the thing you're working with, warm amber marks activity, and
-// anything filtered out drops to a warm stone that also drains its windows.
-const SELECT_COLOR = new THREE.Color(0xc0392b);
-const HEAT_COLOR = new THREE.Color(0xd97706);
-const HOVER_COLOR = new THREE.Color(0xffffff);
-const MUTED_COLOR = new THREE.Color(0xb0987c);
+// Minecraft-themed colours for the city buildings
+// Gold marks selection, emerald marks activity, diamond for hover, stone for muted
+const SELECT_COLOR = new THREE.Color(0xffd83d); // Minecraft gold
+const HEAT_COLOR = new THREE.Color(0x4cd370);   // Minecraft emerald
+const HOVER_COLOR = new THREE.Color(0x5decf5);  // Minecraft diamond
+const MUTED_COLOR = new THREE.Color(0x555555);  // Minecraft stone dark
 
 /**
- * The city is drawn in warm daylight, to sit inside the Warm Terracotta UI (cream
- * beige surfaces, amber borders, crimson-red / amber accents). Each instance's colour is the
- * building's ACCENT — its language colour, or crimson when selected, warm amber
- * when just changed, pale stone when filtered out — and the shader derives the rest
- * from it: a warm stone body, an accent-coloured roof, and windows lit with warm
- * interior amber light. Keeping everything driven by one instance colour means hover,
+ * The city is drawn at night, to sit inside the Obsidian UI (near-black,
+ * zinc surfaces, violet/emerald accents). Each instance's colour is the
+ * building's ACCENT — its language colour, or violet when selected, emerald
+ * when just changed, grey when filtered out — and the shader derives the rest
+ * from it: a dark zinc body, an accent-coloured roof, and windows lit from
+ * inside. Keeping everything driven by one instance colour means hover,
  * selection, heat and filtering all stay a single `setColorAt`, and the whole
  * city is still one draw call per building shape.
  */
@@ -106,9 +105,9 @@ function planMaterial({
           float roof = step(0.9, vObjN.y);
           float h = max(vScale.y, 1e-4);
 
-          // Warm stone body with a trace of the accent tint, so a district of one
+          // Dark zinc body with a trace of the accent, so a district of one
           // language still reads as related from the side.
-          vec3 wall = vec3(0.88, 0.82, 0.72) + accent * 0.06;
+          vec3 wall = vec3(0.066, 0.068, 0.080) + accent * 0.055;
           diffuseColor.rgb = wall;
 
           // Facade as structural BAYS, not a grid of dots: pilaster strip,
@@ -143,7 +142,7 @@ function planMaterial({
           float rnd = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
           float lit = step(0.46, rnd);
 
-          vec3 pane = mix(wall * 0.85, vec3(0.70, 0.60, 0.50), 0.4);
+          vec3 pane = mix(wall * 0.55, vec3(0.10, 0.11, 0.14), 0.5);
           diffuseColor.rgb = mix(diffuseColor.rgb, pane, glass);
 
           // Real walls have thickness, so glazing sits in a reveal: the head
@@ -152,9 +151,9 @@ function planMaterial({
           float jamb = smoothstep(0.28, 0.40, bx);
           float reveal = glass * (1.0 - head * 0.55) * (1.0 - (1.0 - jamb) * 0.35);
 
-          // Warm interior amber light, pulled toward the building's own accent.
-          vec3 room = mix(vec3(1.0, 0.90, 0.65), accent, 0.25);
-          totalEmissiveRadiance += room * lit * reveal * energy * 0.30;
+          // Warm interior light, pulled toward the building's own accent.
+          vec3 room = mix(vec3(1.0, 0.83, 0.58), accent, 0.30);
+          totalEmissiveRadiance += room * lit * reveal * energy * 0.62;
 
           // Accent-coloured roof: from above, the city reads as a language
           // map; from the side, as dark towers with lit windows.
@@ -171,7 +170,7 @@ function planMaterial({
           float lit2 = min(dl, dt);
           float shd  = min(dr, db);
           float facing = step(lit2, shd);
-          vec3 catchLight = diffuseColor.rgb + vec3(0.06, 0.09, 0.14);
+          vec3 catchLight = diffuseColor.rgb + vec3(0.07, 0.07, 0.09);
           diffuseColor.rgb = mix(diffuseColor.rgb,
                                  mix(diffuseColor.rgb * 0.55, catchLight, facing), e);
     ` : `
@@ -408,9 +407,9 @@ export class City {
       plates.setMatrixAt(i, m);
 
       // One hue per folder, kept very dark — zones are ground, and on a
-      // oceanic abyss canvas the buildings standing on them carry the colour.
+      // near-black canvas the buildings standing on them carry the colour.
       const j = hash(d.path || d.name || String(i));
-      const c = new THREE.Color().setHSL(j, 0.35, 0.09 + Math.min(d.depth, 3) * 0.02);
+      const c = new THREE.Color().setHSL(j, 0.28, 0.085 + Math.min(d.depth, 3) * 0.018);
       this.plateBase[i] = c;
       plates.setColorAt(i, c);
       indexByPath.set(d.path, i);
@@ -447,7 +446,7 @@ export class City {
   _refreshPlates() {
     if (!this.plates) return;
     let dirty = false;
-    const dim = new THREE.Color(0x09111e);
+    const dim = new THREE.Color(0x0c0c0f);
     const c = new THREE.Color();
     for (let i = 0; i < this.plateLive.length; i++) {
       const live = this.plateLive[i] > 0 ? 1 : 0;
