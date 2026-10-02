@@ -1,0 +1,575 @@
+<!DOCTYPE html><html lang="en"><head>
+<meta charset="utf-8">
+<meta content="width=device-width, initial-scale=1.0" name="viewport">
+<title>BOB THE BUILDER — Turn GitHub Repos into 3D Minecraft Cities</title>
+<!-- Tailwind CSS v3 with Plugins -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Silkscreen for Authentic Pixel Craft font & Inter for clean UI -->
+<link href="https://fonts.googleapis.com" rel="preconnect">
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect">
+<link href="https://fonts.googleapis.com/css2?family=Press+Start+2P&amp;family=Silkscreen:wght@400;700&amp;family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<!-- Tailwind Configuration -->
+<script data-purpose="tailwind-config">
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            pixel: ['"Silkscreen"', '"Press Start 2P"', 'monospace'],
+            retro: ['"Press Start 2P"', 'monospace'],
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+          },
+          colors: {
+            mc: {
+              stone: '#8B8B8B',
+              stoneLight: '#C6C6C6',
+              stoneDark: '#555555',
+              dirt: '#866043',
+              grass: '#5c8e32',
+              emerald: '#4cd370',
+              emeraldDark: '#298f45',
+              diamond: '#5decf5',
+              gold: '#ffd83d',
+              obsidian: '#121019',
+              bedrock: '#1a191f',
+              cherryPink: '#f8a5c2',
+              cherryPetal: '#ffc0cb',
+              woodOak: '#b8824f'
+            }
+          },
+          boxShadow: {
+            'pixel-bevel': 'inset -2px -4px 0px 0px #373737, inset 2px 2px 0px 0px #FFFFFF',
+            'mc-dialog': 'inset -4px -4px 0px 0px #3f3f3f, inset 4px 4px 0px 0px #dbdbdb, 0 16px 40px rgba(0,0,0,0.65)',
+            'mc-button': 'inset -3px -3px 0px 0px #2a2a2a, inset 3px 3px 0px 0px #d8d8d8',
+            'mc-button-pressed': 'inset 3px 3px 0px 0px #222222, inset -2px -2px 0px 0px #9e9e9e',
+            'mc-green-button': 'inset -3px -3px 0px 0px #1e5a2c, inset 3px 3px 0px 0px #79f09c',
+          }
+        }
+      }
+    };
+  </script>
+<!-- BEGIN: Custom Retro Styles -->
+<style data-purpose="minecraft-3d-title">
+    /* Authentic extruded 3D Minecraft stone title with multiple drop-shadow steps */
+    .mc-title-3d {
+      font-family: 'Silkscreen', cursive;
+      font-weight: 700;
+      color: #f0f0f5;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      text-shadow: 
+        0px 2px 0 #ababaf,
+        0px 4px 0 #7e7e83,
+        0px 6px 0 #545458,
+        0px 8px 0 #323235,
+        0px 10px 0 #1b1b1d,
+        3px 12px 14px rgba(0, 0, 0, 0.7);
+      position: relative;
+      display: inline-block;
+    }
+
+    /* Floating yellow splash text */
+    @keyframes splashBouncing {
+      0%, 100% {
+        transform: rotate(-14deg) scale(1);
+      }
+      50% {
+        transform: rotate(-14deg) scale(1.08);
+      }
+    }
+    .mc-splash-text {
+      font-family: 'Press Start 2P', monospace;
+      color: #ffff55;
+      animation: splashBouncing 1.4s ease-in-out infinite;
+      text-shadow: 2px 2px 0px #3f3f00;
+      transform-origin: center center;
+    }
+
+    /* Pixel art border utility */
+    .pixel-border-stone {
+      border: 4px solid #1a1a1a;
+      box-shadow: inset -4px -4px 0px 0px #4a4a4a, inset 4px 4px 0px 0px #e0e0e0;
+    }
+
+    .pixel-box-inset {
+      border: 3px solid #18191c;
+      box-shadow: inset 3px 3px 6px rgba(0,0,0,0.85);
+    }
+
+    /* Floating Petals and Dust Animation */
+    @keyframes fallingPetals {
+      0% {
+        transform: translate(0, -10px) rotate(0deg);
+        opacity: 0;
+      }
+      10% {
+        opacity: 0.95;
+      }
+      90% {
+        opacity: 0.9;
+      }
+      100% {
+        transform: translate(180px, 980px) rotate(360deg);
+        opacity: 0;
+      }
+    }
+
+    .petal {
+      position: absolute;
+      background-color: #f472b6;
+      border: 1px solid #db2777;
+      border-radius: 1px;
+      pointer-events: none;
+      z-index: 25;
+    }
+
+    /* Cloud Animation */
+    @keyframes driftCloud {
+      from { transform: translateX(-20vw); }
+      to { transform: translateX(115vw); }
+    }
+    .pixel-cloud {
+      position: absolute;
+      animation: driftCloud linear infinite;
+    }
+
+    /* Bob Pickaxe Swing Animation */
+    @keyframes pickaxeSwing {
+      0% { transform: rotate(0deg); }
+      40% { transform: rotate(-55deg); }
+      60% { transform: rotate(18deg); }
+      100% { transform: rotate(0deg); }
+    }
+
+    .swinging-arm {
+      transform-origin: 80% 20%;
+      animation: pickaxeSwing 0.75s ease-in-out infinite;
+    }
+
+    /* Spark Particle Animation */
+    @keyframes particleBurst {
+      0% {
+        opacity: 1;
+        transform: translate(0, 0) scale(1);
+      }
+      100% {
+        opacity: 0;
+        transform: translate(var(--tx), var(--ty)) scale(0.2);
+      }
+    }
+
+    .spark {
+      position: absolute;
+      animation: particleBurst 0.6s ease-out infinite;
+    }
+  </style>
+<!-- END: Custom Retro Styles -->
+</head>
+<body class="bg-[#78b7ff] text-white font-sans antialiased overflow-hidden selection:bg-mc-emerald selection:text-black h-screen relative flex flex-col justify-between">
+<!-- BEGIN: Animated Bright Sky & Cheerful Cherry Grove Voxel Environment Background -->
+<div class="fixed inset-0 pointer-events-none z-0 overflow-hidden" data-purpose="minecraft-environment">
+<!-- Vibrant Cheerful Daytime Sky Gradient with Sun Rays -->
+<div class="absolute inset-0 bg-gradient-to-b from-[#5698f5] via-[#7bb4fb] via-45% to-[#c2e1ff]"></div>
+<!-- Warm Sun Burst / Sunlight Glow in upper right corner -->
+<div class="absolute -top-16 right-12 w-96 h-96 bg-yellow-200/30 rounded-full blur-3xl pointer-events-none"></div>
+<div class="absolute top-8 right-24 w-20 h-20 bg-[#fffbe6] border-4 border-[#fff176] shadow-[0_0_40px_rgba(255,245,150,0.8),inset_-4px_-4px_0_#fbc02d] z-0 hidden md:block"></div>
+<!-- Drifting Minecraft Blocky Clouds -->
+<div class="pixel-cloud top-10 opacity-90" style="animation-duration: 90s; left: -15%;">
+<div class="w-80 h-14 bg-white shadow-[8px_8px_0_rgba(180,210,245,0.7),-8px_4px_0_rgba(195,220,250,0.6)] border-b-2 border-slate-200/80"></div>
+</div>
+<div class="pixel-cloud top-24 opacity-80" style="animation-duration: 130s; left: 30%;">
+<div class="w-96 h-16 bg-white shadow-[12px_10px_0_rgba(180,210,245,0.7),-12px_6px_0_rgba(195,220,250,0.6)] border-b-2 border-slate-200/80"></div>
+</div>
+<div class="pixel-cloud top-8 opacity-75" style="animation-duration: 150s; left: 65%;">
+<div class="w-56 h-12 bg-white shadow-[6px_6px_0_rgba(180,210,245,0.6)]"></div>
+</div>
+<!-- Distant Pastel Mountain Peaks (Minecraft Stepped Voxel Ridge) -->
+<svg class="absolute bottom-12 w-full h-[200px] opacity-45" preserveAspectRatio="none" viewBox="0 0 1440 360">
+<path d="M0,360 L0,220 L60,220 L60,190 L140,190 L140,160 L240,160 L240,190 L340,190 L340,130 L450,130 L450,100 L540,100 L540,160 L680,160 L680,80 L790,80 L790,140 L930,140 L930,110 L1060,110 L1060,170 L1190,170 L1190,130 L1300,130 L1300,190 L1440,190 L1440,360 Z" fill="#6ba7e6"></path>
+<path d="M0,360 L0,250 L120,250 L120,220 L280,220 L280,240 L480,240 L480,180 L620,180 L620,210 L840,210 L840,170 L1000,170 L1000,230 L1200,230 L1200,200 L1340,200 L1340,260 L1440,260 L1440,360 Z" fill="#7ebd5b"></path>
+</svg>
+<!-- Stepped Rolling Cherry Blossom Hills & Grass Cliffs -->
+<svg class="absolute bottom-12 w-full h-[180px] opacity-90" preserveAspectRatio="none" viewBox="0 0 1440 290"><!-- Distant stepped green hills behind -->
+<path d="M0,290 L0,200 L100,200 L100,180 L220,180 L220,210 L380,210 L380,170 L520,170 L520,195 L720,195 L720,160 L880,160 L880,190 L1040,190 L1040,175 L1200,175 L1200,205 L1360,205 L1360,185 L1440,185 L1440,290 Z" fill="#76b840"></path>
+<!-- Lush vibrant Minecraft emerald/lime grass hills -->
+<path d="M0,290 L0,225 L140,225 L140,205 L300,205 L300,230 L500,230 L500,190 L700,190 L700,220 L920,220 L920,185 L1120,185 L1120,215 L1300,215 L1300,195 L1440,195 L1440,290 Z" fill="#5da628"></path>
+<!-- Terraced grass dark ledge step -->
+<path d="M0,290 L0,250 L180,250 L180,235 L380,235 L380,260 L640,260 L640,225 L880,225 L880,250 L1160,250 L1160,230 L1440,230 L1440,290 Z" fill="#467c20"></path></svg>
+<!-- LEFT FLANK: Lush Cherry Blossom & Oak Minecraft Trees -->
+<div class="absolute bottom-12 left-0 z-10 pointer-events-none select-none hidden sm:block"><!-- Minimal Minecraft Oak Tree 1 (Slender, compact, clean) -->
+<div class="relative w-32 h-56">
+  <!-- Compact Leaf Canopy -->
+  <!-- Top Cap -->
+  <div class="absolute top-6 left-12 w-20 h-10 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80,inset_-2px_-2px_0_#166534]">
+    <div class="absolute top-1 left-2 w-3 h-3 bg-[#4ade80]"></div>
+    <div class="absolute top-2 right-3 w-2 h-2 bg-white/80"></div>
+  </div>
+  <!-- Main Canopy Cube -->
+  <div class="absolute top-14 left-6 w-32 h-24 bg-[#16a34a] border-4 border-[#15803d] shadow-[inset_4px_4px_0_#22c55e,inset_-4px_-4px_0_#14532d]">
+    <div class="absolute top-2 left-4 w-4 h-4 bg-[#4ade80]"></div>
+    <div class="absolute top-3 right-5 w-4 h-4 bg-[#22c55e]"></div>
+    <div class="absolute bottom-3 left-6 w-3 h-3 bg-[#15803d]"></div>
+    <!-- Subtle delicate tiny petal/flower accents -->
+    <div class="absolute top-2 right-3 w-1.5 h-1.5 bg-[#fbcfe8]" title="blossom bud"></div>
+    <div class="absolute bottom-2 right-6 w-1.5 h-1.5 bg-[#fde047]" title="dandelion bud"></div>
+    <div class="absolute bottom-4 left-3 w-1.5 h-1.5 bg-white"></div>
+  </div>
+  <!-- Slender Wood Trunk -->
+  <div class="absolute top-36 left-18 w-8 h-40 bg-[#5c3a21] border-2 border-[#3b2110] shadow-[inset_2px_0_0_#784824]">
+    <div class="w-full h-4 bg-[#4a2e18] mt-6"></div>
+    <div class="w-full h-5 bg-[#4a2e18] mt-8"></div>
+  </div>
+</div>
+
+<!-- Small Secondary Spaced Tree Behind -->
+<div class="absolute bottom-4 left-28 w-28 h-52 -z-10 opacity-90">
+  <!-- Leaf Cap -->
+  <div class="absolute top-0 left-4 w-20 h-16 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80]">
+    <div class="absolute top-2 left-2 w-3 h-3 bg-[#4ade80]"></div>
+    <div class="absolute top-1 right-2 w-1.5 h-1.5 bg-[#fbcfe8]"></div>
+  </div>
+  <!-- Trunk -->
+  <div class="absolute top-16 left-10 w-6 h-32 bg-[#5c3a21] border border-[#3b2110]"></div>
+</div></div>
+<!-- RIGHT FLANK: Lush Cherry Blossom & Oak Minecraft Trees -->
+<div class="absolute bottom-12 right-0 z-10 pointer-events-none select-none hidden sm:block"><!-- Spaced Minimal Oak Tree on Right -->
+<div class="relative w-36 h-64 ml-4">
+  <!-- Compact Upper Leaf Canopy -->
+  <div class="absolute top-4 right-14 w-20 h-10 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80,inset_-2px_-2px_0_#166534]">
+    <div class="absolute top-1 right-3 w-3 h-3 bg-[#4ade80]"></div>
+    <div class="absolute top-2 left-3 w-1.5 h-1.5 bg-[#fde047]"></div>
+  </div>
+  <!-- Main Foliage Block -->
+  <div class="absolute top-12 right-8 w-32 h-26 bg-[#16a34a] border-4 border-[#15803d] shadow-[inset_4px_4px_0_#22c55e,inset_-4px_-4px_0_#14532d]">
+    <div class="absolute top-3 left-4 w-4 h-4 bg-[#4ade80]"></div>
+    <div class="absolute top-4 right-6 w-4 h-4 bg-[#22c55e]"></div>
+    <div class="absolute bottom-2 left-6 w-3 h-3 bg-[#15803d]"></div>
+    <!-- Tiny delicate pixel blossom/flower accents -->
+    <div class="absolute top-3 right-3 w-1.5 h-1.5 bg-white"></div>
+    <div class="absolute bottom-3 right-4 w-1.5 h-1.5 bg-[#fbcfe8]"></div>
+    <div class="absolute top-7 left-2 w-1.5 h-1.5 bg-[#fde047]"></div>
+  </div>
+  <!-- Slender Wood Trunk -->
+  <div class="absolute top-36 right-20 w-8 h-44 bg-[#5c3a21] border-2 border-[#3b2110] shadow-[inset_2px_0_0_#784824]">
+    <div class="w-full h-4 bg-[#4a2e18] mt-8"></div>
+    <div class="w-full h-5 bg-[#4a2e18] mt-10"></div>
+  </div>
+</div>
+
+<!-- Small background sapling/shrub cleanly spaced -->
+<div class="absolute bottom-2 right-36 w-16 h-28 -z-10 opacity-80">
+  <div class="w-14 h-12 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80]">
+    <div class="absolute top-1 left-2 w-1.5 h-1.5 bg-white"></div>
+  </div>
+  <div class="w-4 h-14 bg-[#5c3a21] border border-[#3b2110] mx-auto"></div>
+</div></div>
+<!-- FOREGROUND: Stepped Vibrant Minecraft Dirt & Grass Shelf -->
+<div class="absolute bottom-0 w-full h-10 bg-[#5c3a21] border-t-4 border-[#529928] z-20">
+<!-- Repeating pixel dirt texture spots -->
+<div class="w-full h-full opacity-35 bg-[radial-gradient(#382110_2.5px,transparent_2.5px)] [background-size:16px_16px]"></div>
+<!-- Colorful Minecraft Wild Flowers Along the Ground (Poppies, Dandelions, Cherry Blossoms, Alliums) -->
+<div class="absolute -top-7 left-12 flex items-end gap-3 pointer-events-none select-none hidden sm:flex">
+<!-- Pink Blossom Flower -->
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 bg-[#f472b6] border border-[#be185d] flex items-center justify-center">
+<div class="w-1.5 h-1.5 bg-[#fef08a]"></div>
+</div>
+<div class="w-1 h-3 bg-[#4ade80]"></div>
+</div>
+<!-- Red Poppy -->
+<div class="flex flex-col items-center">
+<div class="w-3.5 h-3.5 bg-[#ef4444] border border-[#991b1b] flex items-center justify-center">
+<div class="w-1 h-1 bg-[#18181b]"></div>
+</div>
+<div class="w-1 h-4 bg-[#22c55e]"></div>
+</div>
+<!-- Yellow Dandelion -->
+<div class="flex flex-col items-center">
+<div class="w-3 h-3 bg-[#facc15] border border-[#ca8a04]"></div>
+<div class="w-1 h-2.5 bg-[#22c55e]"></div>
+</div>
+</div>
+<div class="absolute -top-7 left-[38%] flex items-end gap-4 pointer-events-none select-none hidden md:flex">
+<!-- Pink Petal Carpet on Grass -->
+<div class="flex gap-1">
+<div class="w-2.5 h-2 bg-[#f472b6] shadow-[1px_1px_0_#db2777]"></div>
+<div class="w-2 h-2.5 bg-[#fbcfe8] shadow-[1px_1px_0_#f472b6]"></div>
+</div>
+<!-- Tall Grass Sprout -->
+<div class="w-1.5 h-4 bg-[#4ade80] border-r border-[#15803d]"></div>
+</div>
+<div class="absolute -top-7 right-80 flex items-end gap-3 pointer-events-none select-none hidden lg:flex">
+<!-- Allium (Purple pixel flower) -->
+<div class="flex flex-col items-center">
+<div class="w-3.5 h-3.5 bg-[#c084fc] border border-[#7e22ce] flex items-center justify-center">
+<div class="w-1 h-1 bg-[#fae8ff]"></div>
+</div>
+<div class="w-1 h-4 bg-[#22c55e]"></div>
+</div>
+<!-- Pink Cherry Flower -->
+<div class="flex flex-col items-center">
+<div class="w-4 h-4 bg-[#ec4899] border border-[#9d174d] flex items-center justify-center">
+<div class="w-1.5 h-1.5 bg-[#fef08a]"></div>
+</div>
+<div class="w-1 h-3 bg-[#4ade80]"></div>
+</div>
+</div>
+</div>
+<!-- Floating Magical Cherry Blossom Petals Particles -->
+<div class="petal w-3 h-2" style="top: -20px; left: 6%; animation: fallingPetals 10s linear infinite 0.2s;"></div>
+<div class="petal w-2.5 h-2.5" style="top: -20px; left: 18%; animation: fallingPetals 13s linear infinite 2.8s;"></div>
+<div class="petal w-3 h-2" style="top: -20px; left: 32%; animation: fallingPetals 8.5s linear infinite 1.2s;"></div>
+<div class="petal w-2 h-2" style="top: -20px; left: 52%; animation: fallingPetals 12s linear infinite 4.1s;"></div>
+<div class="petal w-3.5 h-2.5" style="top: -20px; left: 74%; animation: fallingPetals 9.5s linear infinite 1.9s;"></div>
+<div class="petal w-2.5 h-2" style="top: -20px; left: 88%; animation: fallingPetals 11.5s linear infinite 4.8s;"></div>
+<div class="petal w-2 h-2" style="top: -20px; left: 95%; animation: fallingPetals 14s linear infinite 6.2s;"></div>
+</div>
+<!-- END: Animated Bright Sky & Cheerful Cherry Grove Voxel Environment Background -->
+<!-- BEGIN: Top Navigation / Game HUD Header -->
+<header class="relative z-40 w-full px-4 lg:px-8 py-2 bg-[#181a24]/90 backdrop-blur-md border-b-4 border-[#2b2d35] shadow-xl" data-purpose="game-hud-header">
+<div class="max-w-7xl mx-auto flex items-center justify-between">
+<!-- Brand & Version Tag -->
+<div class="flex items-center gap-3">
+<!-- 3D Grass Block Icon -->
+<div class="relative pixel-border-stone bg-[#1b1c24] flex-shrink-0 shadow-sm flex items-center justify-center p-1 select-none w-10 h-10" title="Bob's Warhammer"><svg class="w-8 h-8" fill="none" shape-rendering="crispEdges" viewBox="0 0 16 16" xmlns="http://www.w3.org/2000/svg"><rect fill="#dfdfe4" height="2" width="3" x="11" y="1"></rect><rect fill="#ababaf" height="2" width="2" x="9" y="1"></rect><rect fill="#7e7e83" height="4" width="2" x="14" y="2"></rect><rect fill="#545458" height="4" width="4" x="10" y="3"></rect><rect fill="#dfdfe4" height="3" width="2" x="9" y="2"></rect><rect fill="#7e7e83" height="4" width="2" x="8" y="3"></rect><rect fill="#323235" height="3" width="2" x="7" y="4"></rect><rect fill="#323235" height="3" width="4" x="11" y="5"></rect><rect fill="#ffd83d" height="2" width="2" x="12" y="4"></rect><rect fill="#ffd83d" height="2" width="2" x="9" y="6"></rect><rect fill="#ffd83d" height="2" width="2" x="7" y="7"></rect><rect fill="#b8824f" height="2" width="2" x="6" y="8"></rect><rect fill="#ffd83d" height="2" width="2" x="5" y="9"></rect><rect fill="#866043" height="2" width="2" x="4" y="10"></rect><rect fill="#b8824f" height="2" width="2" x="3" y="11"></rect><rect fill="#5c3e28" height="2" width="2" x="2" y="12"></rect><rect fill="#322013" height="2" width="2" x="1" y="13"></rect><rect fill="#7e7e83" height="2" width="2" x="0" y="14"></rect><rect fill="#323235" height="1" width="2" x="1" y="15"></rect></svg></div>
+<div class="flex items-center gap-2">
+<span class="font-pixel text-lg md:text-xl font-bold tracking-wider text-white hover:text-mc-gold transition-colors drop-shadow-[2px_2px_0px_#000]">
+            BOB<span class="text-mc-gold">.</span>BUILDER
+          </span>
+<div class="hidden sm:inline-flex items-center justify-center w-7 h-7 bg-[#21242e] border-2 border-t-[#525564] border-l-[#525564] border-b-[#15161a] border-r-[#15161a] shadow-[1px_1px_0_#000] p-1 flex-shrink-0" title="Bob's Hammer"></div>
+</div>
+</div>
+<!-- Center HUD Navigation Links -->
+<nav class="hidden md:flex items-center gap-2 font-pixel text-xs">
+<a class="px-3 py-2 text-gray-200 hover:text-white bg-[#2e3039] hover:bg-[#3d404d] border-2 border-t-[#525564] border-l-[#525564] border-b-[#191a20] border-r-[#191a20] shadow-sm transition-all active:translate-y-0.5" href="#how-it-works">
+          HOW IT WORKS
+        </a>
+<a class="px-3 py-2 text-gray-200 hover:text-white bg-[#2e3039] hover:bg-[#3d404d] border-2 border-t-[#525564] border-l-[#525564] border-b-[#191a20] border-r-[#191a20] shadow-sm transition-all active:translate-y-0.5" href="#showcase">
+          CITY SHOWCASE
+        </a>
+<a class="px-3 py-2 text-gray-200 hover:text-white bg-[#2e3039] hover:bg-[#3d404d] border-2 border-t-[#525564] border-l-[#525564] border-b-[#191a20] border-r-[#191a20] shadow-sm transition-all active:translate-y-0.5" href="#docs">
+          DOCS
+        </a>
+</nav>
+<!-- Right CTAs: GitHub Star & Connect -->
+<div class="flex items-center gap-3">
+<!-- GitHub Star Badge -->
+<a class="flex items-center gap-1.5 px-3 py-1.5 bg-[#252830] hover:bg-[#2f333d] border-2 border-t-[#454955] border-l-[#454955] border-b-[#15161a] border-r-[#15161a] text-xs font-pixel text-mc-gold shadow-sm transition-all" href="https://github.com" rel="noreferrer" target="_blank">
+<svg class="w-3.5 h-3.5 fill-current" viewBox="0 0 24 24"><path d="M12 .587l3.668 7.431 8.2 1.192-5.934 5.784 1.399 8.163-7.333-3.856-7.333 3.856 1.399-8.163-5.934-5.784 8.2-1.192zm0 5.702l-2.232 4.522-4.991.725 3.612 3.521-.852 4.968 4.463-2.346 4.463 2.346-.852-4.968 3.612-3.521-4.991-.725z"></path></svg>
+<span class="">STAR 14.8K</span>
+</a>
+<!-- Connect GitHub Button (Stone Beveled Frame) -->
+<button class="px-4 py-2 bg-[#4e515d] hover:bg-[#5a5e6d] text-white font-pixel text-xs tracking-wide border-2 border-t-[#9699a6] border-l-[#9699a6] border-b-[#202127] border-r-[#202127] shadow-[2px_2px_0px_#000] active:translate-y-0.5 active:border-t-[#202127] active:border-l-[#202127] flex items-center gap-2" id="btn-connect">
+<svg class="w-4 h-4 fill-white" viewBox="0 0 24 24"><path clip-rule="evenodd" d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0112 6.844c.85.004 1.705.115 2.504.337 1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0022 12.017C22 6.484 17.522 2 12 2z" fill-rule="evenodd"></path></svg>
+<span class="hidden sm:inline">CONNECT GITHUB</span>
+<span class="sm:hidden">LOGIN</span>
+</button>
+</div>
+</div>
+</header>
+<!-- END: Top Navigation / Game HUD Header -->
+<!-- BEGIN: Main Hero Section -->
+<main class="relative z-30 max-w-6xl mx-auto px-4 sm:px-6 pt-2 pb-2 flex-1 flex flex-col items-center justify-center text-center">
+<!-- Title Wrapper with Splash Text -->
+<div class="relative mb-2 sm:mb-2 pt-1">
+<!-- 3D Minecraft Style Extruded Title -->
+<h1 class="mc-title-3d text-3xl sm:text-4xl md:text-5xl lg:text-6xl tracking-tight select-none">
+        BOB THE BUILDER
+      </h1>
+<!-- Floating Yellow Bouncy Splash Text -->
+<div class="absolute -top-3 -right-6 sm:-right-10 z-20">
+
+</div>
+</div>
+<!-- Pixel-Inspired Punchy Subtitle with strong drop-shadow for contrast over bright sky -->
+<div class="max-w-2xl mx-auto space-y-1 mb-4 text-white">
+<p class="font-sans text-lg sm:text-xl font-bold tracking-tight text-white drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)]">
+        Turn your GitHub repository into a living 3D voxel metropolis.
+      </p>
+<p class="font-sans text-sm sm:text-base text-white/95 font-medium drop-shadow-[0_2px_4px_rgba(0,0,0,0.85)] leading-relaxed">
+        Every folder is a city district, every file a skyscraper, and every commit a fresh brick placed by Bob.
+      </p>
+</div>
+<!-- BEGIN: GitHub Repository Input (Minecraft Menu Dialog Style) -->
+<div class="w-full max-w-3xl mx-auto p-4 sm:p-6 bg-[#b2b2b2] pixel-border-stone rounded-none shadow-[0_20px_50px_rgba(0,0,0,0.55)] relative mb-4" data-purpose="minecraft-input-dialog">
+<!-- Inner Charcoal Container with Inset Bevel -->
+<div class="bg-[#101217]/95 pixel-box-inset p-3 sm:p-5 flex flex-col gap-4">
+<!-- Input Row -->
+<div class="flex flex-col sm:flex-row items-stretch gap-3">
+<!-- Text Input with Octocat Icon -->
+<div class="relative flex-1 flex items-center bg-[#07080b] border-2 border-t-[#22242a] border-l-[#22242a] border-b-[#474c58] border-r-[#474c58] focus-within:border-mc-emerald transition-all shadow-inner">
+<span class="pl-4 pr-2 text-gray-400 select-none">
+<svg class="w-5 h-5 fill-mc-stoneLight" viewBox="0 0 24 24"><path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"></path></svg>
+</span>
+<input class="w-full bg-transparent py-3 sm:py-3.5 pr-4 text-sm sm:text-base font-pixel text-white placeholder-gray-500 focus:outline-none focus:ring-0 border-0" id="repo-input" placeholder="owner/repository or paste GitHub URL..." type="text" value="https://github.com/facebook/react">
+</div>
+<!-- Primary Minecraft Styled Action Button -->
+<button class="px-6 py-3.5 bg-[#3c8c4a] hover:bg-[#48a557] active:bg-[#2c6e39] text-white font-pixel text-sm sm:text-base tracking-wide border-4 border-t-[#6fe286] border-l-[#6fe286] border-b-[#1b4e24] border-r-[#1b4e24] shadow-[3px_3px_0_#000] active:translate-y-0.5 active:border-t-[#1b4e24] active:border-l-[#1b4e24] active:border-b-[#6fe286] active:border-r-[#6fe286] flex items-center justify-center gap-2 whitespace-nowrap group transition-all" id="build-btn"><span class="">BUILD MY CITY</span> <span class="group-hover:translate-x-1 transition-transform">⛏</span></button>
+</div>
+<!-- Quick-try Sample Repositories -->
+<div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-[#232733]">
+<span class="font-pixel text-[11px] text-gray-400 uppercase tracking-wider flex items-center gap-1">
+<span class="inline-block w-2 h-2 bg-mc-gold"></span> Quick World Seeds:
+          </span>
+<div class="flex flex-wrap gap-2">
+<button class="px-2.5 py-1 text-[11px] font-pixel bg-[#1c1f28] hover:bg-[#282d3b] text-mc-emerald hover:text-white border border-[#333847] hover:border-mc-emerald transition-colors" onclick="setRepo('facebook/react')">
+              react <span class="text-gray-400 text-[9px]">(1,420 blk)</span>
+</button>
+<button class="px-2.5 py-1 text-[11px] font-pixel bg-[#1c1f28] hover:bg-[#282d3b] text-mc-gold hover:text-white border border-[#333847] hover:border-mc-gold transition-colors" onclick="setRepo('torvalds/linux')">
+              linux <span class="text-gray-400 text-[9px]">(89,400 blk)</span>
+</button>
+<button class="px-2.5 py-1 text-[11px] font-pixel bg-[#1c1f28] hover:bg-[#282d3b] text-mc-diamond hover:text-white border border-[#333847] hover:border-mc-diamond transition-colors" onclick="setRepo('tailwindlabs/tailwindcss')">
+              tailwind <span class="text-gray-400 text-[9px]">(620 blk)</span>
+</button>
+<button class="px-2.5 py-1 text-[11px] font-pixel bg-[#1c1f28] hover:bg-[#282d3b] text-mc-cherryPink hover:text-white border border-[#333847] hover:border-mc-cherryPink transition-colors" onclick="setRepo('vercel/next.js')">
+              next.js <span class="text-gray-400 text-[9px]">(3,810 blk)</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+<!-- END: GitHub Repository Input -->
+<p class="font-pixel text-xs text-yellow-100 drop-shadow-[1px_1px_2px_rgba(0,0,0,0.9)] mt-1" id="craft-status">World Generator Ready: Biome "Oak Grove" detected</p>
+</main>
+<!-- END: Main Hero Section -->
+<!-- BEGIN: Bottom Interactive Scenes (Bob Character on Left & Telemetry HUD on Right) -->
+<section class="relative z-30 w-full px-4 pb-2 flex flex-col md:flex-row items-end justify-between gap-6 pointer-events-none" data-purpose="interactive-playground">
+<!-- BOB THE BUILDER & VOXEL WORKSHOP SCENE (Bottom-Left) -->
+<div class="pointer-events-auto flex items-end gap-5">
+<!-- Pixel Bob Character Container -->
+<div class="relative w-20 h-28 flex-shrink-0 select-none">
+<!-- Speech Bubble from Bob -->
+<div class="absolute -top-12 -left-4 bg-white text-black font-pixel text-[10px] px-2.5 py-1 rounded shadow-lg border-2 border-black whitespace-nowrap after:content-[''] after:absolute after:top-full after:left-8 after:border-4 after:border-transparent after:border-t-white">
+          "ASYNC COMMITS PLACED!"
+        </div>
+<!-- Bob Voxel Character Art -->
+<div class="relative w-full h-full">
+<!-- Yellow Hardhat -->
+<div class="absolute top-2 left-6 w-14 h-6 bg-[#f7b731] border-2 border-[#b07d17] shadow-sm">
+<div class="w-16 h-2 -ml-1 mt-4 bg-[#e5a625]"></div>
+</div>
+<!-- Head / Face -->
+<div class="absolute top-7 left-8 w-10 h-8 bg-[#fcdbb0] border-2 border-[#cfa579]">
+<!-- Pixel Eyes & Beard -->
+<div class="absolute top-2 left-2 w-1.5 h-2 bg-[#2d3436]"></div>
+<div class="absolute top-2 right-2 w-1.5 h-2 bg-[#2d3436]"></div>
+<div class="absolute bottom-1 left-2 w-6 h-2 bg-[#8c5738]"></div>
+</div>
+<!-- Body / Blue Denim Overalls + Orange Flannel -->
+<div class="absolute top-15 left-6 w-14 h-12 bg-[#3867d6] border-2 border-[#20408e]">
+<div class="w-full h-3 bg-[#e67e22]"></div>
+<!-- Overall Straps & Pocket -->
+<div class="flex justify-between px-2 pt-0.5">
+<div class="w-2 h-4 bg-[#2b4fa8]"></div>
+<div class="w-3 h-2 bg-[#254593] mt-2 border border-[#4b7bec]"></div>
+<div class="w-2 h-4 bg-[#2b4fa8]"></div>
+</div>
+</div>
+<!-- Swinging Right Arm holding Diamond Pickaxe -->
+<div class="swinging-arm absolute top-14 right-0 w-16 h-16 origin-top-left pointer-events-none" id="bob-arm" style="animation: 0.35s ease-in-out 0s infinite normal none running pickaxeSwing;">
+<!-- Hand holding pickaxe shaft -->
+<div class="w-4 h-3 bg-[#fcdbb0] border border-[#cfa579] ml-8"></div>
+<!-- Diamond Pickaxe Graphic -->
+<div class="absolute top-1 left-7 w-8 h-8 rotate-45 flex items-center justify-center">
+<div class="w-2 h-10 bg-[#795548] border border-[#4e342e]"></div>
+<div class="absolute -top-1 -left-2 w-6 h-2.5 bg-[#45d9e8] border border-[#1b8a96] shadow-[0_0_8px_#5decf5]"></div>
+</div>
+</div>
+<!-- Legs & Boots -->
+<div class="absolute bottom-0 left-7 flex gap-2">
+<div class="w-5 h-7 bg-[#20408e] border border-[#14285c]">
+<div class="w-6 h-2 mt-5 bg-[#4b382a] border border-[#2b1f16]"></div>
+</div>
+<div class="w-5 h-7 bg-[#20408e] border border-[#14285c]">
+<div class="w-6 h-2 mt-5 bg-[#4b382a] border border-[#2b1f16]"></div>
+</div>
+</div>
+<!-- Dynamic Sparks bursting from the pickaxe strike point -->
+<div class="absolute top-20 right-[-10px] w-4 h-4 pointer-events-none">
+<div class="spark w-1.5 h-1.5 bg-mc-gold shadow-[0_0_4px_#ffd83d]" style="--tx: 18px; --ty: -18px;"></div>
+<div class="spark w-2 h-2 bg-mc-diamond shadow-[0_0_6px_#5decf5]" style="--tx: -15px; --ty: -22px; animation-delay: 0.15s;"></div>
+<div class="spark w-1.5 h-1.5 bg-[#ff4757]" style="--tx: 22px; --ty: 8px; animation-delay: 0.3s;"></div>
+<div class="spark w-1 h-1 bg-white" style="--tx: 10px; --ty: -28px; animation-delay: 0.4s;"></div>
+</div>
+</div>
+</div>
+<!-- Half-Built Skyscraper Scaffold (packages/core.ts) -->
+<div class="hidden sm:flex flex-col items-center">
+<!-- Voxel Scaffold Tower Tag -->
+<span class="mb-1 font-pixel text-[9px] px-2 py-0.5 bg-[#1b1c24] text-mc-emerald border border-mc-emerald/40 shadow-sm">
+          packages/core.ts (Building...)
+        </span>
+<!-- 3D Voxel Blocks Stack -->
+<div class="flex flex-col items-center">
+<!-- Glass Block (Top being placed) -->
+<div class="w-14 h-7 bg-[#a5ecf7]/50 border-2 border-[#d5f9ff] flex items-center justify-center text-[8px] font-pixel text-white/90 shadow-inner">
+            GLASS
+          </div>
+<!-- Colored Wool Block Layer -->
+<div class="flex">
+<div class="w-7 h-7 bg-[#e056fd] border border-[#be2edd]"></div>
+<div class="w-7 h-7 bg-[#686de0] border border-[#4834d4]"></div>
+</div>
+<!-- Polished Stone Brick Base -->
+<div class="flex">
+<div class="w-7 h-7 bg-[#777b7e] border border-[#484a4c] grid grid-cols-2 gap-0.5 p-0.5">
+<div class="bg-[#5d6063]"></div>
+<div class="bg-[#8b8f92]"></div>
+<div class="bg-[#8b8f92]"></div>
+<div class="bg-[#5d6063]"></div>
+</div>
+<div class="w-7 h-7 bg-[#777b7e] border border-[#484a4c] grid grid-cols-2 gap-0.5 p-0.5">
+<div class="bg-[#8b8f92]"></div>
+<div class="bg-[#5d6063]"></div>
+<div class="bg-[#5d6063]"></div>
+<div class="bg-[#8b8f92]"></div>
+</div>
+</div>
+<!-- Foundation Dirt Layer -->
+<div class="w-16 h-4 bg-[#6b4c35] border-t-2 border-[#557a27]"></div>
+</div>
+</div>
+</div>
+<!-- LIVE WORLD TELEMETRY HUD CARD (Bottom-Right) -->
+<div class="pointer-events-auto w-full md:w-64 relative select-none filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.65)]"><div class="absolute -top-3 left-6 flex flex-col items-center z-10"><div class="w-3 h-3 bg-[#4a2e18] border border-[#2d1b0e] shadow-[1px_1px_0_#24150b]"></div><div class="w-1 h-3 bg-[#6a4224]"></div></div><div class="absolute -top-3 right-6 flex flex-col items-center z-10"><div class="w-3 h-3 bg-[#4a2e18] border border-[#2d1b0e] shadow-[1px_1px_0_#24150b]"></div><div class="w-1 h-3 bg-[#6a4224]"></div></div><div class="absolute -top-2.5 -left-2 z-20 pointer-events-none flex flex-col items-start"><div class="flex"><div class="w-4 h-3 bg-[#3d7324] border border-[#284d18]"></div><div class="w-3 h-2 bg-[#529330] border border-[#284d18]"></div><div class="w-2 h-2 bg-[#ffb7c5] shadow-[1px_1px_0_#d86c8a]"></div></div><div class="flex pl-1"><div class="w-2 h-4 bg-[#3d7324] border-l border-r border-[#284d18]"></div><div class="w-3 h-3 bg-[#2d561a]"></div></div><div class="w-2 h-3 bg-[#3d7324] border-l border-r border-[#284d18] ml-1"></div></div><div class="absolute -top-2 right-2 z-20 pointer-events-none flex flex-col items-end"><div class="flex"><div class="w-2 h-2 bg-[#ffb7c5] shadow-[1px_1px_0_#d86c8a]"></div><div class="w-4 h-3 bg-[#4d862e] border border-[#284d18]"></div><div class="w-3 h-2 bg-[#386b20]"></div></div><div class="flex pr-1"><div class="w-3 h-2 bg-[#2d561a]"></div><div class="w-2 h-3 bg-[#4d862e] border-l border-r border-[#284d18]"></div></div></div><div class="relative bg-[#85542d] border-4 border-t-[#c6894c] border-l-[#a6713c] border-b-[#422714] border-r-[#422714] shadow-[4px_4px_0px_#180e07] p-3 text-[#fbf1db] font-pixel overflow-hidden"><div class="absolute inset-0 pointer-events-none opacity-25 bg-[radial-gradient(#4a2b16_1px,transparent_1px)] [background-size:8px_8px]"></div><div class="absolute top-1.5 left-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="relative z-10"><div class="flex items-center justify-between pb-1.5 mb-2 border-b-2 border-[#54331a] shadow-[0_1px_0_#9e6638]"><div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 bg-[#5e381b] border border-[#3b2110] flex items-center justify-center text-[9px] text-[#ffd83d]">📜</div><h3 class="text-xs font-bold text-[#fff2d6] tracking-wide drop-shadow-[1px_1px_0_#331c0d]">WORLD METRICS</h3></div><span class="text-[9px] bg-[#533017] px-1.5 py-0.5 border border-[#3d220f] text-[#ffd83d] tracking-wider drop-shadow-[1px_1px_0_#221308]">RULESET</span></div><ul class="space-y-1.5 text-xs"><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#ffd83d] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#ffd83d] inline-block shadow-[1px_1px_0_#946f00]"></span>1 Commit</span><span class="text-[10px] text-[#ffdea7] font-bold drop-shadow-[1px_1px_0_#2a160a]">1 BRICK LAYER</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#4cd370] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#4cd370] inline-block shadow-[1px_1px_0_#1c6e33]"></span>1 Contributor</span><span class="text-[10px] text-[#9bfa71] font-bold drop-shadow-[1px_1px_0_#2a160a]">1 NPC VILLAGER</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#ff4757] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#ff4757] inline-block shadow-[1px_1px_0_#8c1621]"></span>Open PRs</span><span class="text-[10px] text-[#ffb4ab] font-bold drop-shadow-[1px_1px_0_#2a160a]">REDSTONE MACHINES</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#5decf5] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#5decf5] inline-block shadow-[1px_1px_0_#17828c]"></span>Git Branches</span><span class="text-[10px] text-[#a2c9ff] font-bold drop-shadow-[1px_1px_0_#2a160a]">MINECART RAILS</span></li></ul><div class="mt-2 pt-1.5 border-t border-[#54331a] flex items-center justify-between text-[9px] text-[#ebd4b2] drop-shadow-[1px_1px_0_#2d170a]"><span class="flex items-center gap-1"><span class="">🌿</span> Biome: Oak_Grove</span><span class="bg-[#502e15] px-1 py-0.5 border border-[#3b210e]">Tick: 20 TPS</span></div></div></div></div>
+</section>
+<!-- END: Bottom Interactive Scenes -->
+<!-- BEGIN: Interactive Client Logic -->
+<script data-purpose="interaction-handlers">
+    // Quick repo button setter
+    function setRepo(repoSlug) {
+      const input = document.getElementById('repo-input');
+      const statusText = document.getElementById('craft-status');
+      if (input) {
+        input.value = `https://github.com/${repoSlug}`;
+        input.focus();
+      }
+      if (statusText) {
+        statusText.innerText = `Loaded Seed for ${repoSlug} (Analyzing commits...)`;
+        statusText.classList.add('text-mc-gold');
+        setTimeout(() => {
+          statusText.classList.remove('text-mc-gold');
+        }, 1500);
+      }
+    }
+
+    // Action button visual click reaction
+    const buildBtn = document.getElementById('build-btn');
+    if (buildBtn) {
+      buildBtn.addEventListener('click', () => {
+        const repo = document.getElementById('repo-input').value;
+        const statusText = document.getElementById('craft-status');
+        statusText.innerText = `Crafting world chunk for "${repo}"... Please wait!`;
+        buildBtn.innerText = 'CRAFTING... ⏳';
+        setTimeout(() => {
+          buildBtn.innerHTML = '<span>BUILD MY CITY</span> <span class="group-hover:translate-x-1 transition-transform">⛏</span>';
+          statusText.innerText = `City Generated! 4,281 blocks placed across 14 districts.`;
+        }, 1200);
+      });
+    }
+  </script>
+<!-- END: Interactive Client Logic -->
+
+
+
+
+</body></html>
