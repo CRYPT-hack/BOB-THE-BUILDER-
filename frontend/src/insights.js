@@ -205,7 +205,7 @@ export function packages(data, max = 8) {
         files: items.length,
         share: loc / totalLoc,
         lang: lang ? lang[0] : '—',
-        color: lang ? items.find((x) => x.b.lang === lang[0]).b.color : '#71717a',
+        color: lang ? items.find((x) => x.b.lang === lang[0]).b.color : '#5a80a8',
         owner: owner ? owner[0] : null,
         modules: items.sort((a, b) => b.loc - a.loc).slice(0, 3).map((x) => ({
           name: x.b.path.split('/').pop(), path: x.b.path,

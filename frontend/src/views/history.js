@@ -137,8 +137,8 @@ export function renderHistory(root, ctx) {
     const svg = sv('svg', { viewBox: `0 0 ${W} ${H}`, width: W, height: H });
     const defs = sv('defs', {});
     const grad = sv('linearGradient', { id: 'areaFill', x1: 0, y1: 0, x2: 0, y2: 1 });
-    grad.append(sv('stop', { offset: '0%', 'stop-color': '#a78bfa', 'stop-opacity': '0.28' }),
-      sv('stop', { offset: '100%', 'stop-color': '#a78bfa', 'stop-opacity': '0' }));
+    grad.append(sv('stop', { offset: '0%', 'stop-color': '#38bdf8', 'stop-opacity': '0.35' }),
+      sv('stop', { offset: '100%', 'stop-color': '#38bdf8', 'stop-opacity': '0' }));
     defs.append(grad);
     svg.append(defs);
     for (let g = 0; g <= 4; g++) {
@@ -233,8 +233,8 @@ function factRow(data, s, people, h) {
     el('div', { class: 'ic', style: { background: `${color}1a`, color } }, icon(ic)),
     el('div', {}, el('div', { class: 't' }, t), el('div', { class: 'v', title: title || v }, v)));
   return el('div', { class: 'fact-row' },
-    fact('bolt', '#a78bfa', `Largest commit · +${compact(s.dLoc[big])} lines`, bc?.subject || bc?.sha || '—'),
-    fact('person', '#34d399', 'Most commits',
+    fact('bolt', '#38bdf8', `Largest commit · +${compact(s.dLoc[big])} lines`, bc?.subject || bc?.sha || '—'),
+    fact('person', '#2dd4bf', 'Most commits',
       top ? `${top.name} · ${fmt(top.commits)} (${Math.round((top.commits / data.commits.length) * 100)}%)` : '—'),
     fact('delete_sweep', '#f59e0b', 'Files demolished along the way',
       `${fmt(h.demolished)} of ${fmt(h.demolished + h.live)} ever built`),

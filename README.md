@@ -223,19 +223,6 @@ site/
   script.js      city generator, replay, scroll reveal, stat counters
 ```
 
-## The landing page
-
-`site/` is a standalone marketing page for the project — plain HTML and CSS
-with a little vanilla JavaScript, sharing the app's palette so the two read as
-one product. The hero contains a miniature city that builds itself one building
-at a time, mirroring what the real timeline does.
-
-It has no build step. Open `site/index.html` directly, or serve it:
-
-```bash
-python -m http.server 4300 --directory site
-```
-
 ## Roadmap
 
 - [x] History-replay data engine
