@@ -6,9 +6,9 @@
 import { eras, date, year } from './insights.js';
 
 // Roughly how long a full playthrough should take at 1x, whatever the repo.
-const PLAYTHROUGH_SECONDS = 100;
+const PLAYTHROUGH_SECONDS = 60;
 // Floor so a tiny repo doesn't crawl one commit every two seconds.
-const MIN_COMMITS_PER_SEC = 1.5;
+const MIN_COMMITS_PER_SEC = 2.5;
 
 const $ = (id) => document.getElementById(id);
 

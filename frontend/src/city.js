@@ -3,7 +3,7 @@ import { getArchetypeGeometries, pickArchetype } from './shapes.js';
 
 const MIN_H = 0.6;     // world height of a 1-line file
 const MAX_H = 28;      // world height of the biggest file ever
-const GROW_SPEED = 7;  // higher = snappier height transitions
+const GROW_SPEED = 15;  // higher = snappier height transitions
 // Buildings do not start rising the instant their file appears. They join a
 // queue and are released a few per second, so the city is always assembling
 // one building at a time no matter how many files a single commit added — an
@@ -12,10 +12,10 @@ const GROW_SPEED = 7;  // higher = snappier height transitions
 //
 // This paces the ANIMATION only. The data is untouched: every building still
 // carries the exact line count of its file at every commit.
-const BIRTH_RATE = 7;      // buildings released per second, baseline
-const BIRTH_CATCHUP = 4.0; // a backlog is cleared within roughly this long
+const BIRTH_RATE = 30;      // buildings released per second, baseline
+const BIRTH_CATCHUP = 1.5; // a backlog is cleared within roughly this long
 const HEAT_WINDOW = 5; // commits over which a "just changed" glow fades
-const EPS = 0.004;     // height delta below which we stop rewriting a matrix
+const EPS = 0.02;     // height delta below which we stop rewriting a matrix
 
 // One shared unit box for every building. All buildings live in a single
 // InstancedMesh, so a 10k-file repo costs ONE draw call instead of 10k.
@@ -636,6 +636,9 @@ export class City {
     this._releaseBirths(dt);
     const k = Math.min(1, dt * GROW_SPEED);
 
+    let anyMatrixDirty = false;
+    let anyColorDirty = false;
+
     for (let i = 0; i < this.n; i++) {
       const x = this.items[i];
       const g = this.groups[x.g];
@@ -647,6 +650,7 @@ export class City {
         if (Math.abs(x.targetH - x.h) <= EPS) { x.h = x.targetH; x.dirty = false; }
         this._writeMatrix(x, x.h);
         g.matrixDirty = true;
+        anyMatrixDirty = true;
       }
 
       if (x.colorDirty) {
@@ -662,15 +666,24 @@ export class City {
         g.mesh.setColorAt(x.gi, this._c);
         x.colorDirty = false;
         g.colorDirty = true;
+        anyColorDirty = true;
       }
     }
 
-    for (const g of this.groups) {
-      if (!g) continue;
-      if (g.matrixDirty) { g.mesh.instanceMatrix.needsUpdate = true; g.matrixDirty = false; }
-      if (g.colorDirty && g.mesh.instanceColor) {
-        g.mesh.instanceColor.needsUpdate = true;
-        g.colorDirty = false;
+    // Only update GPU if something actually changed
+    if (anyMatrixDirty) {
+      for (const g of this.groups) {
+        if (!g) continue;
+        if (g.matrixDirty) { g.mesh.instanceMatrix.needsUpdate = true; g.matrixDirty = false; }
+      }
+    }
+    if (anyColorDirty) {
+      for (const g of this.groups) {
+        if (!g) continue;
+        if (g.colorDirty && g.mesh.instanceColor) {
+          g.mesh.instanceColor.needsUpdate = true;
+          g.colorDirty = false;
+        }
       }
     }
   }

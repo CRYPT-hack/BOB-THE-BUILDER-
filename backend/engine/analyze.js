@@ -79,7 +79,7 @@ export function analyzeRepo(repoPath, opts = {}) {
           subject: rest.join('\x1f'),
         });
         ci = commits.length - 1;
-        if (onProgress && ci % 5000 === 0 && ci > 0) onProgress(ci);
+        if (onProgress && ci % 500 === 0 && ci > 0) onProgress(ci);
         return;
       }
       if (!line) return;

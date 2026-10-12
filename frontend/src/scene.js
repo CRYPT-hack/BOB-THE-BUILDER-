@@ -24,6 +24,7 @@ export class Scene {
     this.hitResolver = null;  // (intersection) => { building, index } | null
     this._resolved = null;    // what the pointer is over right now
     this._flight = null;      // an in-progress camera move
+    this._raycastFrame = 0;   // throttle raycasting to every 3 frames
 
     this.raycaster = new THREE.Raycaster();
     this.mouse = new THREE.Vector2(-2, -2);
@@ -70,7 +71,7 @@ export class Scene {
     const size = this.renderer.getDrawingBufferSize(new THREE.Vector2());
     const target = new THREE.WebGLRenderTarget(size.width, size.height, {
       type: THREE.HalfFloatType,
-      samples: 4,
+      samples: 2,
     });
 
     this.composer = new EffectComposer(this.renderer, target);
@@ -90,11 +91,11 @@ export class Scene {
       distanceExponent: 1.0,
       thickness: 1.0,
       scale: 1.0,
-      samples: 6,
+      samples: 2,
       distanceFallOff: 1.0,
       screenSpaceRadius: false,
     });
-    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: 6 });
+    gtao.updatePdMaterial({ lumaPhi: 10, depthPhi: 2, normalPhi: 3, radius: 4, rings: 2, samples: 2 });
     this.gtao = gtao;
     this.composer.addPass(gtao);
 
@@ -132,9 +133,9 @@ export class Scene {
 
     this.renderer = new THREE.WebGLRenderer({ antialias: true });
     this.renderer.setSize(w, h);
-    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    this.renderer.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
     this.renderer.shadowMap.enabled = true;
-    this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+    this.renderer.shadowMap.type = THREE.PCFShadowMap;
     // Tone mapping keeps lit windows and accent roofs from clipping to white.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
     this.renderer.toneMappingExposure = 1.05;
@@ -152,7 +153,7 @@ export class Scene {
 
     this.controls = new OrbitControls(this.camera, this.renderer.domElement);
     this.controls.enableDamping = true;
-    this.controls.dampingFactor = 0.06;
+    this.controls.dampingFactor = 0.1;
     this.controls.maxPolarAngle = Math.PI / 2.15;
     this.controls.minDistance = 8;
     this.controls.maxDistance = 800;
@@ -170,7 +171,7 @@ export class Scene {
     const key = new THREE.DirectionalLight(0xb4c2ff, 1.1);
     key.position.set(90, 170, 70);
     key.castShadow = true;
-    key.shadow.mapSize.set(2048, 2048);
+    key.shadow.mapSize.set(1024, 1024);
     key.shadow.camera.near = 10;
     key.shadow.camera.far = 500;
     const s = 160;
@@ -365,7 +366,9 @@ export class Scene {
     this.controls.update();
     // Another view is on screen: keep the city's clock running, skip the GPU work.
     if (this.paused) return;
-    this._raycast();
+    // Throttle raycasting to every 3 frames for better performance
+    this._raycastFrame++;
+    if (this._raycastFrame % 3 === 0) this._raycast();
     this.render();
     this.labels.render(this.scene, this.camera);
   }

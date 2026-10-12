@@ -81,11 +81,15 @@ async function runJob(jobId, info) {
     jobs.set(jobId, { status: 'running', message: `Analyzing ${info.name}…` });
     const city = await buildCity(repoPath, {
       // Long histories take a while — keep the UI honest about progress.
-      onProgress: (n) =>
-        jobs.set(jobId, {
-          status: 'running',
-          message: `Replaying ${info.name} — ${n.toLocaleString()} commits…`,
-        }),
+      onProgress: (n) => {
+        // Throttle UI updates to every 500 commits for large repos
+        if (n % 500 === 0 || n < 100) {
+          jobs.set(jobId, {
+            status: 'running',
+            message: `Replaying ${info.name} — ${n.toLocaleString()} commits…`,
+          });
+        }
+      },
     });
     city.repo = info.name;
     // The repo's web page, so the UI can link files back to their host. The

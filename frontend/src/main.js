@@ -262,7 +262,8 @@ function load(next) {
     renderStatus(data, alive);
     if (history) history.update(idx, playing);
     const now = performance.now();
-    if (selected && !$('inspector').hidden && (!playing || now - lastInspect > 250)) {
+    // Throttle inspector updates to 500ms during playback for better performance
+    if (selected && !$('inspector').hidden && (!playing || now - lastInspect > 500)) {
       lastInspect = now;
       showInspector(data, selected, idx, { onFocus: (x) => focus(x) });
     }
