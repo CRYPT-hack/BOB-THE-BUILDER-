@@ -444,18 +444,18 @@
 <!-- Bob Voxel Character Art -->
 <div class="relative w-full h-full">
 <!-- Yellow Hardhat -->
-<div class="absolute top-2 left-6 w-14 h-6 bg-[#f7b731] border-2 border-[#b07d17] shadow-sm">
-<div class="w-16 h-2 -ml-1 mt-4 bg-[#e5a625]"></div>
+<div class="absolute top-1 left-3 w-14 h-5 bg-[#f7b731] border-2 border-[#b07d17] shadow-sm">
+<div class="w-16 h-2 -ml-1 mt-3 bg-[#e5a625]"></div>
 </div>
 <!-- Head / Face -->
-<div class="absolute top-7 left-8 w-10 h-8 bg-[#fcdbb0] border-2 border-[#cfa579]">
+<div class="absolute top-5 left-5 w-10 h-9 bg-[#fcdbb0] border-2 border-[#cfa579]">
 <!-- Pixel Eyes & Beard -->
-<div class="absolute top-2 left-2 w-1.5 h-2 bg-[#2d3436]"></div>
-<div class="absolute top-2 right-2 w-1.5 h-2 bg-[#2d3436]"></div>
+<div class="absolute top-2 left-2 w-2 h-2 bg-[#2d3436]"></div>
+<div class="absolute top-2 right-2 w-2 h-2 bg-[#2d3436]"></div>
 <div class="absolute bottom-1 left-2 w-6 h-2 bg-[#8c5738]"></div>
 </div>
 <!-- Body / Blue Denim Overalls + Orange Flannel -->
-<div class="absolute top-15 left-6 w-14 h-12 bg-[#3867d6] border-2 border-[#20408e]">
+<div class="absolute top-12 left-3 w-14 h-11 bg-[#3867d6] border-2 border-[#20408e]">
 <div class="w-full h-3 bg-[#e67e22]"></div>
 <!-- Overall Straps & Pocket -->
 <div class="flex justify-between px-2 pt-0.5">
@@ -464,27 +464,31 @@
 <div class="w-2 h-4 bg-[#2b4fa8]"></div>
 </div>
 </div>
+<!-- Left Arm (static) -->
+<div class="absolute top-13 left-0 w-3 h-6 bg-[#e67e22] border-2 border-[#d35400]"></div>
 <!-- Swinging Right Arm holding Diamond Pickaxe -->
-<div class="swinging-arm absolute top-14 right-0 w-16 h-16 origin-top-left pointer-events-none" id="bob-arm" style="animation: 0.35s ease-in-out 0s infinite normal none running pickaxeSwing;">
+<div class="swinging-arm absolute top-13 right-0 w-16 h-16 origin-top-left pointer-events-none" id="bob-arm" style="animation: 0.35s ease-in-out 0s infinite normal none running pickaxeSwing;">
+<!-- Arm -->
+<div class="w-3 h-6 bg-[#e67e22] border-2 border-[#d35400] ml-8"></div>
 <!-- Hand holding pickaxe shaft -->
-<div class="w-4 h-3 bg-[#fcdbb0] border border-[#cfa579] ml-8"></div>
+<div class="w-4 h-3 bg-[#fcdbb0] border border-[#cfa579] ml-8 mt-[-4px]"></div>
 <!-- Diamond Pickaxe Graphic -->
-<div class="absolute top-1 left-7 w-8 h-8 rotate-45 flex items-center justify-center">
+<div class="absolute top-2 left-7 w-8 h-8 rotate-45 flex items-center justify-center">
 <div class="w-2 h-10 bg-[#795548] border border-[#4e342e]"></div>
 <div class="absolute -top-1 -left-2 w-6 h-2.5 bg-[#45d9e8] border border-[#1b8a96] shadow-[0_0_8px_#5decf5]"></div>
 </div>
 </div>
 <!-- Legs & Boots -->
-<div class="absolute bottom-0 left-7 flex gap-2">
-<div class="w-5 h-7 bg-[#20408e] border border-[#14285c]">
-<div class="w-6 h-2 mt-5 bg-[#4b382a] border border-[#2b1f16]"></div>
+<div class="absolute bottom-0 left-4 flex gap-2">
+<div class="w-5 h-6 bg-[#20408e] border border-[#14285c]">
+<div class="w-5 h-2 mt-4 bg-[#4b382a] border border-[#2b1f16]"></div>
 </div>
-<div class="w-5 h-7 bg-[#20408e] border border-[#14285c]">
-<div class="w-6 h-2 mt-5 bg-[#4b382a] border border-[#2b1f16]"></div>
+<div class="w-5 h-6 bg-[#20408e] border border-[#14285c]">
+<div class="w-5 h-2 mt-4 bg-[#4b382a] border border-[#2b1f16]"></div>
 </div>
 </div>
 <!-- Dynamic Sparks bursting from the pickaxe strike point -->
-<div class="absolute top-20 right-[-10px] w-4 h-4 pointer-events-none">
+<div class="absolute top-16 right-[-10px] w-4 h-4 pointer-events-none">
 <div class="spark w-1.5 h-1.5 bg-mc-gold shadow-[0_0_4px_#ffd83d]" style="--tx: 18px; --ty: -18px;"></div>
 <div class="spark w-2 h-2 bg-mc-diamond shadow-[0_0_6px_#5decf5]" style="--tx: -15px; --ty: -22px; animation-delay: 0.15s;"></div>
 <div class="spark w-1.5 h-1.5 bg-[#ff4757]" style="--tx: 22px; --ty: 8px; animation-delay: 0.3s;"></div>
