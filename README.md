@@ -253,3 +253,7 @@ python -m http.server 4300 --directory site
 ### 1. Follow one repository through the app
 
 The frontend sends a repository name to `POST /api/analyze`. The backend validates the input, clones remote repositories without checking out files, and runs the history engine. Short jobs return a city immediately; longer jobs return a job ID that the frontend polls. The finished city data is then used by the 3D view and the file, history, and health pages.
+
+### 2. Use a supported repository input
+
+Enter a GitHub shorthand such as `facebook/react`, or paste a full HTTPS repository URL. The backend also accepts a local path when the server process can access that Git repository. Empty or malformed input is rejected before cloning.
