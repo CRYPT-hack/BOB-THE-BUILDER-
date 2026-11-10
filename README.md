@@ -257,3 +257,7 @@ The frontend sends a repository name to `POST /api/analyze`. The backend validat
 ### 2. Use a supported repository input
 
 Enter a GitHub shorthand such as `facebook/react`, or paste a full HTTPS repository URL. The backend also accepts a local path when the server process can access that Git repository. Empty or malformed input is rejected before cloning.
+
+### 3. Understand the city layout
+
+Each file that appears anywhere in the history gets one lot. The layout is calculated from the full file set so a file keeps the same position as you move through commits. A deleted file can leave an empty lot in earlier or later timeline views.
