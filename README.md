@@ -277,3 +277,7 @@ Open `http://localhost:3001/api/health` to see whether the backend is responding
 ### 7. Try the engine with a local repository
 
 From the `backend/` directory, run `node engine/cli.js <path-to-a-git-repository> city.json`. The input path must point to a Git repository. The command writes the generated timeline JSON to the output path you provide.
+
+### 8. Start both development servers
+
+Keep the backend and frontend commands running in separate terminals. Vite serves the browser app on port 3000 and forwards `/api` requests to the backend on port 3001. If the page loads but repository analysis fails, check that the backend terminal is still running.
