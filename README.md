@@ -265,3 +265,7 @@ Each file that appears anywhere in the history gets one lot. The layout is calcu
 ### 4. Read file size as a history estimate
 
 The engine adds and subtracts Git's `--numstat` line counts for each commit. This is a useful view of how text files change, but it is not a measure of runtime size, binary content, or code quality. Git does not provide normal line counts for binary files.
+
+### 5. Run without MongoDB
+
+MongoDB is an optional cache. If it is unavailable, the backend can still analyze repositories; later requests may need to repeat the analysis. Start the optional database only when you want cached results between requests.
