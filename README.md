@@ -269,3 +269,7 @@ The engine adds and subtracts Git's `--numstat` line counts for each commit. Thi
 ### 5. Run without MongoDB
 
 MongoDB is an optional cache. If it is unavailable, the backend can still analyze repositories; later requests may need to repeat the analysis. Start the optional database only when you want cached results between requests.
+
+### 6. Check the backend API
+
+Open `http://localhost:3001/api/health` to see whether the backend is responding. `POST /api/analyze` starts or returns an analysis, and `GET /api/job/<jobId>` reports progress for work that is still running.
