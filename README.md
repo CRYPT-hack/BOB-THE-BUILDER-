@@ -281,3 +281,7 @@ From the `backend/` directory, run `node engine/cli.js <path-to-a-git-repository
 ### 8. Start both development servers
 
 Keep the backend and frontend commands running in separate terminals. Vite serves the browser app on port 3000 and forwards `/api` requests to the backend on port 3001. If the page loads but repository analysis fails, check that the backend terminal is still running.
+
+### 9. Check browser graphics support
+
+The city view uses Three.js and WebGL. If the rest of the page loads but the city stays blank, try a current browser with hardware acceleration enabled. The file, history, and health views can still help inspect the generated city data.
