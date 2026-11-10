@@ -273,3 +273,7 @@ MongoDB is an optional cache. If it is unavailable, the backend can still analyz
 ### 6. Check the backend API
 
 Open `http://localhost:3001/api/health` to see whether the backend is responding. `POST /api/analyze` starts or returns an analysis, and `GET /api/job/<jobId>` reports progress for work that is still running.
+
+### 7. Try the engine with a local repository
+
+From the `backend/` directory, run `node engine/cli.js <path-to-a-git-repository> city.json`. The input path must point to a Git repository. The command writes the generated timeline JSON to the output path you provide.
