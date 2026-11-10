@@ -285,3 +285,7 @@ Keep the backend and frontend commands running in separate terminals. Vite serve
 ### 9. Check browser graphics support
 
 The city view uses Three.js and WebGL. If the rest of the page loads but the city stays blank, try a current browser with hardware acceleration enabled. The file, history, and health views can still help inspect the generated city data.
+
+### 10. Use a repository the server can clone
+
+For a remote analysis, the backend must be able to clone the repository over HTTPS. Public repositories work without credentials. A private repository may fail unless Git credentials are configured for the backend environment.
