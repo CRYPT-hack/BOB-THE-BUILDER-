@@ -261,3 +261,7 @@ Enter a GitHub shorthand such as `facebook/react`, or paste a full HTTPS reposit
 ### 3. Understand the city layout
 
 Each file that appears anywhere in the history gets one lot. The layout is calculated from the full file set so a file keeps the same position as you move through commits. A deleted file can leave an empty lot in earlier or later timeline views.
+
+### 4. Read file size as a history estimate
+
+The engine adds and subtracts Git's `--numstat` line counts for each commit. This is a useful view of how text files change, but it is not a measure of runtime size, binary content, or code quality. Git does not provide normal line counts for binary files.
