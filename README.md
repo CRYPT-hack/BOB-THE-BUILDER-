@@ -233,3 +233,46 @@ site/
 - [x] Scale: instancing, commit sampling, streaming parse, gzip
 - [ ] Author view (color by who edits) & richer heat trails
 - [ ] Shareable permalinks, export to GIF
+
+
+## Student notes
+
+### 1. Follow one repository through the app
+
+The frontend sends a repository name to `POST /api/analyze`. The backend validates the input, clones remote repositories without checking out files, and runs the history engine. Short jobs return a city immediately; longer jobs return a job ID that the frontend polls. The finished city data is then used by the 3D view and the file, history, and health pages.
+
+### 2. Use a supported repository input
+
+Enter a GitHub shorthand such as `facebook/react`, or paste a full HTTPS repository URL. The backend also accepts a local path when the server process can access that Git repository. Empty or malformed input is rejected before cloning.
+
+### 3. Understand the city layout
+
+Each file that appears anywhere in the history gets one lot. The layout is calculated from the full file set so a file keeps the same position as you move through commits. A deleted file can leave an empty lot in earlier or later timeline views.
+
+### 4. Read file size as a history estimate
+
+The engine adds and subtracts Git's `--numstat` line counts for each commit. This is a useful view of how text files change, but it is not a measure of runtime size, binary content, or code quality. Git does not provide normal line counts for binary files.
+
+### 5. Run without MongoDB
+
+MongoDB is an optional cache. If it is unavailable, the backend can still analyze repositories; later requests may need to repeat the analysis. Start the optional database only when you want cached results between requests.
+
+### 6. Check the backend API
+
+Open `http://localhost:3001/api/health` to see whether the backend is responding. `POST /api/analyze` starts or returns an analysis, and `GET /api/job/<jobId>` reports progress for work that is still running.
+
+### 7. Try the engine with a local repository
+
+From the `backend/` directory, run `node engine/cli.js <path-to-a-git-repository> city.json`. The input path must point to a Git repository. The command writes the generated timeline JSON to the output path you provide.
+
+### 8. Start both development servers
+
+Keep the backend and frontend commands running in separate terminals. Vite serves the browser app on port 3000 and forwards `/api` requests to the backend on port 3001. If the page loads but repository analysis fails, check that the backend terminal is still running.
+
+### 9. Check browser graphics support
+
+The city view uses Three.js and WebGL. If the rest of the page loads but the city stays blank, try a current browser with hardware acceleration enabled. The file, history, and health views can still help inspect the generated city data.
+
+### 10. Use a repository the server can clone
+
+For a remote analysis, the backend must be able to clone the repository over HTTPS. Public repositories work without credentials. A private repository may fail unless Git credentials are configured for the backend environment.
