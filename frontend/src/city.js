@@ -317,8 +317,8 @@ export class City {
         const j = hash(b.path);
         base.setHSL(
           (hsl.h + (j - 0.5) * 0.04 + 1) % 1,
-          clamp(hsl.s * 0.9, 0.35, 0.75),
-          clamp(0.62 + (j - 0.5) * 0.08, 0.55, 0.68)
+          clamp(hsl.s * 0.65, 0.18, 0.48),
+          clamp(0.52 + (j - 0.5) * 0.06, 0.47, 0.58)
         );
 
         const item = {
@@ -408,10 +408,14 @@ export class City {
       m.setPosition(d.x, y, d.z);
       plates.setMatrixAt(i, m);
 
-      // One hue per folder, kept very dark — zones are ground, and on a
-      // near-black canvas the buildings standing on them carry the colour.
+      // Keep the districts in a shared stone-and-sage range so the colored
+      // roof and facade details remain the focus of the daylight palette.
       const j = hash(d.path || d.name || String(i));
-      const c = new THREE.Color().setHSL(j, 0.28, 0.085 + Math.min(d.depth, 3) * 0.018);
+      const c = new THREE.Color().setHSL(
+        0.18 + (j - 0.5) * 0.05,
+        0.16,
+        0.35 - Math.min(d.depth, 3) * 0.03
+      );
       this.plateBase[i] = c;
       plates.setColorAt(i, c);
       indexByPath.set(d.path, i);
