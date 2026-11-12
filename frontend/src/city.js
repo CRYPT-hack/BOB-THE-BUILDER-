@@ -21,28 +21,22 @@ const EPS = 0.02;     // height delta below which we stop rewriting a matrix
 // InstancedMesh, so a 10k-file repo costs ONE draw call instead of 10k.
 const UNIT = new THREE.BoxGeometry(1, 1, 1);
 
-// Minecraft-themed colours for the city buildings
-// Gold marks selection, emerald marks activity, diamond for hover, stone for muted
-const SELECT_COLOR = new THREE.Color(0xd7794e); // warm terracotta
-const HEAT_COLOR = new THREE.Color(0x4c9b78);   // celadon green
-const HOVER_COLOR = new THREE.Color(0x4d9ba2);  // glazed teal
-const MUTED_COLOR = new THREE.Color(0x817b6f);  // warm stone
+// Soft daylight tints keep interaction states visible without overpowering
+// Cheoma's own timber, plaster, and roof colors.
+const SELECT_COLOR = new THREE.Color(0xf1cf91); // soft amber
+const HEAT_COLOR = new THREE.Color(0xc0d9b5);   // muted leaf green
+const HOVER_COLOR = new THREE.Color(0xb4d7d4);  // pale celadon
+const MUTED_COLOR = new THREE.Color(0xc2beb2);  // softened warm stone
 
 /**
- * The city is drawn at night, to sit inside the Obsidian UI (near-black,
- * zinc surfaces, violet/emerald accents). Each instance's colour is the
- * building's ACCENT — its language colour, or violet when selected, emerald
- * when just changed, grey when filtered out — and the shader derives the rest
- * from it: a dark zinc body, an accent-coloured roof, and windows lit from
- * inside. Keeping everything driven by one instance colour means hover,
- * selection, heat and filtering all stay a single `setColorAt`, and the whole
- * city is still one draw call per building shape.
+ * Cheoma's vertex colors supply the building materials. Instance colors are
+ * reserved for gentle selection, activity, hover, and filtered-state tints.
  */
 const FLOOR_H = 0.8;  // world units per storey
 const BAY_W = 0.52;   // world units per structural bay (pilaster + glazing)
 
 function planMaterial({
-  mode = 'building', edgeWidth = 1.9, shapes = false, ...opts
+  mode = 'building', edgeWidth = 1.0, shapes = false, ...opts
 } = {}) {
   const building = mode === 'building';
   const mat = new THREE.MeshStandardMaterial({
@@ -111,13 +105,13 @@ function planMaterial({
           float lit2 = min(dl, dt);
           float shd  = min(dr, db);
           float facing = step(lit2, shd);
-          vec3 catchLight = diffuseColor.rgb + vec3(0.07, 0.07, 0.09);
+          vec3 catchLight = diffuseColor.rgb + vec3(0.025, 0.025, 0.03);
           diffuseColor.rgb = mix(diffuseColor.rgb,
-                                 mix(diffuseColor.rgb * 0.55, catchLight, facing), e);
+                                 mix(diffuseColor.rgb * 0.82, catchLight, facing), e);
     ` : `
           // A thin lighter border around each zone, the way the UI separates
           // surfaces with 1px outlines rather than shadows.
-          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.9 + vec3(0.05), e * 0.9);
+          diffuseColor.rgb = mix(diffuseColor.rgb, diffuseColor.rgb * 1.14 + vec3(0.018), e * 0.72);
     `;
 
     shader.fragmentShader = shader.fragmentShader
@@ -162,7 +156,7 @@ function planMaterial({
       );
   };
   // Distinct key so three doesn't share a cached program with another variant.
-  mat.customProgramCacheKey = () => `night-${mode}-${edgeWidth}-${shapes}`;
+  mat.customProgramCacheKey = () => `daylight-${mode}-${edgeWidth}-${shapes}`;
   return mat;
 }
 
@@ -316,7 +310,7 @@ export class City {
 
     const plates = new THREE.InstancedMesh(
       UNIT,
-      planMaterial({ mode: 'plate', edgeWidth: 1.4, roughness: 0.95 }),
+      planMaterial({ mode: 'plate', edgeWidth: 0.9, roughness: 0.95 }),
       sorted.length
     );
     plates.receiveShadow = true;

@@ -87,7 +87,7 @@ export class Scene {
 
     const gtao = new GTAOPass(this.scene, this.camera, w, h);
     gtao.output = GTAOPass.OUTPUT.Default;
-    gtao.blendIntensity = 1.0;
+    gtao.blendIntensity = 0.55;
     // Radius is in world units — tuned to the width of a street so occlusion
     // gathers between buildings without smearing across whole blocks.
     // Sample counts are deliberately low: AO here is broad contact shading,
@@ -98,7 +98,7 @@ export class Scene {
       radius: 1.6,
       distanceExponent: 1.0,
       thickness: 1.0,
-      scale: 1.0,
+      scale: 0.8,
       samples: 2,
       distanceFallOff: 1.0,
       screenSpaceRadius: false,
@@ -144,7 +144,7 @@ export class Scene {
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     // Tone mapping keeps lit windows and accent roofs from clipping to white.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.15;
+    this.renderer.toneMappingExposure = 1.05;
     this.container.appendChild(this.renderer.domElement);
 
     // Folder names float over their districts. CSS2D keeps them as real DOM
@@ -170,9 +170,9 @@ export class Scene {
 
   _lights() {
     // Warm daylight brings out the timber, plaster and celadon roof tones.
-    this.scene.add(new THREE.AmbientLight(0xdce8dc, 0.75));
+    this.scene.add(new THREE.AmbientLight(0xdce8dc, 0.9));
 
-    const key = new THREE.DirectionalLight(0xffe2b0, 2.0);
+    const key = new THREE.DirectionalLight(0xffe2b0, 1.65);
     this.sunLight = key;
     key.position.set(90, 170, 70);
     key.castShadow = true;
@@ -188,11 +188,11 @@ export class Scene {
     key.shadow.normalBias = 0.5;
     this.scene.add(key);
 
-    const rim = new THREE.DirectionalLight(0x8fb6a2, 0.5);
+    const rim = new THREE.DirectionalLight(0x8fb6a2, 0.3);
     rim.position.set(-80, 50, -90);
     this.scene.add(rim);
 
-    this.scene.add(new THREE.HemisphereLight(0xc0ded4, 0x786751, 0.8));
+    this.scene.add(new THREE.HemisphereLight(0xc0ded4, 0x786751, 0.9));
   }
 
   _ground() {
