@@ -341,6 +341,7 @@ export class Scene {
    * street grid, low enough to keep the extrusions three-dimensional.
    */
   frameCamera(radius, center = new THREE.Vector3(0, 0, 0)) {
+    this._buildLandscape(radius, center);
     const dist = Math.max(radius * 1.75, 70);
     this.camera.position.set(
       center.x + dist * 0.62,
@@ -349,6 +350,111 @@ export class Scene {
     );
     this.controls.target.set(center.x, 0, center.z);
     this.controls.update();
+  }
+
+  /** Add a small, repeatable landscape around the city as a distant backdrop. */
+  _buildLandscape(radius, center) {
+    if (this.landscape) {
+      this.scene.remove(this.landscape);
+      const geometries = new Set();
+      const materials = new Set();
+      this.landscape.traverse((object) => {
+        if (!object.isMesh && !object.isInstancedMesh) return;
+        if (object.geometry) geometries.add(object.geometry);
+        for (const material of Array.isArray(object.material) ? object.material : [object.material]) {
+          if (material) materials.add(material);
+        }
+      });
+      geometries.forEach((geometry) => geometry.dispose());
+      materials.forEach((material) => material.dispose());
+    }
+
+    const landscape = new THREE.Group();
+    landscape.name = 'town-landscape';
+    landscape.position.set(center.x, 0, center.z);
+    this.scene.add(landscape);
+    this.landscape = landscape;
+
+    // A seeded scatter keeps the setting stable between camera refits/reloads.
+    let seed = 90731;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) >>> 0;
+      return seed / 4294967296;
+    };
+    const size = Math.max(radius, 35);
+
+    // Faceted ridges sit well beyond the plots, leaving the streets and roofs clear.
+    const ridgeGeometries = [
+      new THREE.DodecahedronGeometry(1, 0),
+      new THREE.IcosahedronGeometry(1, 0),
+    ];
+    const ridgeMaterials = [0x809b86, 0x93a78b, 0xa9b394].map((color) =>
+      new THREE.MeshStandardMaterial({ color, roughness: 1, flatShading: true })
+    );
+    for (let i = 0; i < 22; i++) {
+      const angle = (i / 22) * Math.PI * 2 + (random() - 0.5) * 0.12;
+      const distance = size * (2.05 + random() * 0.6);
+      const height = size * (0.34 + random() * 0.27);
+      const mountain = new THREE.Mesh(
+        ridgeGeometries[i % ridgeGeometries.length],
+        ridgeMaterials[Math.floor(random() * ridgeMaterials.length)]
+      );
+      mountain.position.set(Math.cos(angle) * distance, height * 0.42, Math.sin(angle) * distance);
+      mountain.scale.set(size * (0.42 + random() * 0.33), height, size * (0.34 + random() * 0.3));
+      mountain.rotation.y = random() * Math.PI;
+      mountain.castShadow = true;
+      landscape.add(mountain);
+    }
+
+    // Instancing makes the tree belt detailed at town scale without adding
+    // hundreds of separate draw calls.
+    const treeCount = 112;
+    const trunkGeometry = new THREE.CylinderGeometry(0.12, 0.19, 1, 6);
+    const crownGeometry = new THREE.ConeGeometry(1, 1, 7);
+    const trunkMaterial = new THREE.MeshStandardMaterial({ color: 0x735b43, roughness: 1 });
+    const crownMaterial = new THREE.MeshStandardMaterial({ color: 0x587b5b, roughness: 1, flatShading: true });
+    const trunks = new THREE.InstancedMesh(trunkGeometry, trunkMaterial, treeCount);
+    const crowns = new THREE.InstancedMesh(crownGeometry, crownMaterial, treeCount);
+    trunks.castShadow = true;
+    crowns.castShadow = true;
+    const dummy = new THREE.Object3D();
+    for (let i = 0; i < treeCount; i++) {
+      const angle = random() * Math.PI * 2;
+      const distance = size * (1.12 + random() * 0.72);
+      const height = Math.max(2.8, Math.min(6.5, size * (0.045 + random() * 0.025)));
+      const x = Math.cos(angle) * distance;
+      const z = Math.sin(angle) * distance;
+      const scale = height / 5;
+
+      dummy.position.set(x, height * 0.14, z);
+      dummy.rotation.set(0, random() * Math.PI, 0);
+      dummy.scale.set(scale, height * 0.3, scale);
+      dummy.updateMatrix();
+      trunks.setMatrixAt(i, dummy.matrix);
+
+      dummy.position.set(x, height * 0.59, z);
+      dummy.scale.set(height * 0.105, height * 0.82, height * 0.105);
+      dummy.updateMatrix();
+      crowns.setMatrixAt(i, dummy.matrix);
+    }
+    trunks.instanceMatrix.needsUpdate = true;
+    crowns.instanceMatrix.needsUpdate = true;
+    landscape.add(trunks, crowns);
+
+    // Warm afternoon sun and a soft halo complete the horizon without a flat sky card.
+    const sunRadius = Math.max(4, size * 0.105);
+    const sun = new THREE.Mesh(
+      new THREE.SphereGeometry(sunRadius, 24, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffc96f, toneMapped: false })
+    );
+    sun.position.set(-size * 1.75, size * 1.03, -size * 1.75);
+    landscape.add(sun);
+    const halo = new THREE.Mesh(
+      new THREE.SphereGeometry(sunRadius * 1.55, 24, 16),
+      new THREE.MeshBasicMaterial({ color: 0xffd98e, transparent: true, opacity: 0.18, depthWrite: false, toneMapped: false })
+    );
+    halo.position.copy(sun.position);
+    landscape.add(halo);
   }
 
   _animate() {
