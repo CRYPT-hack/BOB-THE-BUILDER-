@@ -117,13 +117,13 @@ const utility = () => merge([
 ]);
 
 /**
- * Bake Cheoma's parametric temple into one unit-cube geometry. CodeCity still
+ * Bake one of Cheoma's parametric Korean buildings into unit-cube geometry. CodeCity still
  * renders this as an InstancedMesh, so the richer roof and bracket silhouette
  * costs one draw call for the whole archetype. Cheoma's materials are not
  * copied: the city shader supplies its existing per-language finish.
  */
-function cheomaHanok() {
-  const root = buildBuilding({ ...PRESETS.temple });
+function cheomaArchitecture(preset) {
+  const root = buildBuilding({ ...PRESETS[preset] });
   const sourceGeometries = [];
   try {
     root.updateMatrixWorld(true);
@@ -209,12 +209,16 @@ export const ARCHETYPES = [
   { name: 'depot', build: depot },
   { name: 'retail', build: retail },
   { name: 'utility', build: utility },
-  { name: 'hanok', build: cheomaHanok },
+  { name: 'koreanHall', build: () => cheomaArchitecture('korea') },
+  { name: 'hanok', build: () => cheomaArchitecture('temple') },
+  { name: 'choga', build: () => cheomaArchitecture('choga') },
+  { name: 'giwa', build: () => cheomaArchitecture('giwa') },
 ];
 
 const A = {
   slab: 0, setback: 1, lshape: 2, courtyard: 3, podium: 4, twin: 5, stepped: 6,
-  church: 7, civicHall: 8, depot: 9, retail: 10, utility: 11, hanok: 12,
+  church: 7, civicHall: 8, depot: 9, retail: 10, utility: 11,
+  koreanHall: 12, hanok: 13, choga: 14, giwa: 15,
 };
 
 let cache = null;
@@ -267,30 +271,36 @@ export function pickArchetype(maxLoc, j, lang, minSide = Infinity) {
 
   if (kind === 'civic') {
     if (maxLoc < 40) return A.retail;            // a notice board, not a church
-    if (maxLoc < 400) return j < 0.38 ? A.civicHall : j < 0.76 ? A.hanok : A.church;
-    return j < 0.62 ? A.hanok : A.civicHall;
+    if (maxLoc < 400) {
+      if (j < 0.25) return A.civicHall;
+      if (j < 0.52) return A.hanok;
+      if (j < 0.78) return A.giwa;
+      return j < 0.9 ? A.church : A.choga;
+    }
+    return j < 0.34 ? A.koreanHall : j < 0.68 ? A.hanok : A.civicHall;
   }
 
   if (kind === 'misc') {
     if (maxLoc < 80) {
       if (j < 0.5) return A.slab;
-      if (j < 0.72) return A.retail;
-      return A.utility;
+      if (j < 0.7) return A.retail;
+      return j < 0.86 ? A.utility : A.choga;
     }
-    if (j < 0.4) return A.depot;
-    if (j < 0.7) return A.slab;
-    return A.lshape;
+    if (j < 0.35) return A.depot;
+    if (j < 0.55) return A.slab;
+    if (j < 0.78) return A.lshape;
+    return A.choga;
   }
 
   if (kind === 'works') {
     if (maxLoc < 30) return j < 0.6 ? A.utility : A.slab;
-    if (maxLoc < 300) return j < 0.55 ? A.depot : A.utility;
-    return j < 0.7 ? A.depot : A.courtyard;      // big yards read as depots
+    if (maxLoc < 300) return j < 0.42 ? A.depot : j < 0.72 ? A.giwa : A.utility;
+    return j < 0.55 ? A.depot : j < 0.78 ? A.koreanHall : A.courtyard; // big yards read as depots
   }
 
   if (kind === 'retail') {
-    if (maxLoc < 250) return A.retail;
-    return j < 0.6 ? A.retail : A.stepped;       // parade over shops
+    if (maxLoc < 250) return j < 0.58 ? A.retail : A.giwa;
+    return j < 0.48 ? A.retail : j < 0.76 ? A.giwa : A.stepped; // parade over shops
   }
 
   // ---- Commercial: the office stock -------------------------------------
@@ -300,28 +310,29 @@ export function pickArchetype(maxLoc, j, lang, minSide = Infinity) {
 
   if (maxLoc < 120) {                            // low-rise
     if (j < 0.45) return A.slab;
-    if (j < 0.72) return A.twin;
-    return A.stepped;
+    if (j < 0.68) return A.twin;
+    if (j < 0.86) return A.stepped;
+    return A.choga;
   }
 
   if (maxLoc < 500) {                            // mid-rise
     if (j < 0.26) return A.stepped;
     if (j < 0.50) return A.lshape;
     if (j < 0.70) return A.twin;
-    if (j < 0.86) return A.courtyard;
-    return A.slab;
+    if (j < 0.82) return A.courtyard;
+    return A.giwa;
   }
 
   if (maxLoc < 1500) {                           // large block
     if (j < 0.30) return A.courtyard;
     if (j < 0.55) return A.lshape;
     if (j < 0.78) return A.podium;
-    return A.setback;
+    return j < 0.9 ? A.setback : A.koreanHall;
   }
 
   // Landmarks. A building this tall should read as a tower, so only the
   // vertical archetypes apply — a courtyard stretched to 28 units tall looks
   // like a chimney, not a block.
-  return j < 0.55 ? A.setback : A.podium;
+  return j < 0.47 ? A.setback : j < 0.85 ? A.podium : A.koreanHall;
 }
 
