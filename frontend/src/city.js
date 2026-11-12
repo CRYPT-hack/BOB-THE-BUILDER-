@@ -101,8 +101,10 @@ function planMaterial({
           // dim grey accent, which drains its windows and roof along with it.
           float energy = max(max(accent.r, accent.g), accent.b);
 
-          float side = 1.0 - step(0.9, abs(vObjN.y));
-          float roof = step(0.9, vObjN.y);
+          // Treat pitched roof planes as roofs too; vertical walls still carry
+          // the facade bays while Cheoma's angled tiles receive the roof tint.
+          float side = 1.0 - step(0.15, abs(vObjN.y));
+          float roof = step(0.15, vObjN.y);
           float h = max(vScale.y, 1e-4);
 
           // Dark zinc body with a trace of the accent, so a district of one
@@ -729,3 +731,4 @@ export function locAt(history, t) {
   }
   return { loc: history[ans].loc, c: history[ans].c };
 }
+
