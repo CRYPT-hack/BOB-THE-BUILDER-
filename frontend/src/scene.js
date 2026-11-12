@@ -7,7 +7,7 @@ import { OutputPass } from 'three/addons/postprocessing/OutputPass.js';
 import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
 import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
 
-const BG = 0x121019; // Minecraft obsidian background
+const BG = 0xb8c9c2; // soft sage daylight
 
 // The 3D stage: renderer, camera, lights, ground, orbit controls, hover
 // raycasting, and a render loop that fans out to per-frame subscribers.
@@ -48,9 +48,7 @@ export class Scene {
     const pmrem = new THREE.PMREMGenerator(this.renderer);
     pmrem.compileEquirectangularShader();
     this.scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-    // Low at night: enough for glazing to catch a sheen, not enough to
-    // light the city like an overcast afternoon.
-    this.scene.environmentIntensity = 0.22;
+    this.scene.environmentIntensity = 0.65;
     pmrem.dispose();
   }
 
@@ -120,10 +118,8 @@ export class Scene {
 
   _init() {
     this.scene = new THREE.Scene();
-    // The city is drawn at night on the page's own background colour, so the
-    // canvas has no visible edge — the UI floats over the city rather than
-    // framing a picture of one. Fog fades the far ground into that same
-    // colour instead of into a horizon line.
+    // A bright, softly fogged backdrop gives the tiled roofs and plaster walls
+    // room to read without a harsh horizon behind the city.
     this.scene.background = new THREE.Color(BG);
     this.scene.fog = new THREE.Fog(BG, 260, 900);
 
@@ -138,7 +134,7 @@ export class Scene {
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     // Tone mapping keeps lit windows and accent roofs from clipping to white.
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 1.05;
+    this.renderer.toneMappingExposure = 1.15;
     this.container.appendChild(this.renderer.domElement);
 
     // Folder names float over their districts. CSS2D keeps them as real DOM
@@ -163,12 +159,10 @@ export class Scene {
   }
 
   _lights() {
-    // Night lighting: a cool moon as the key so the massing still reads and
-    // throws shadow, a violet rim from behind to separate towers from the
-    // dark ground, and very little ambient — the windows do the rest.
-    this.scene.add(new THREE.AmbientLight(0x8a90b8, 0.35));
+    // Warm daylight brings out the timber, plaster and celadon roof tones.
+    this.scene.add(new THREE.AmbientLight(0xdce8dc, 0.75));
 
-    const key = new THREE.DirectionalLight(0xb4c2ff, 1.1);
+    const key = new THREE.DirectionalLight(0xffe2b0, 2.0);
     key.position.set(90, 170, 70);
     key.castShadow = true;
     key.shadow.mapSize.set(1024, 1024);
@@ -183,11 +177,11 @@ export class Scene {
     key.shadow.normalBias = 0.5;
     this.scene.add(key);
 
-    const rim = new THREE.DirectionalLight(0xa78bfa, 0.55);
+    const rim = new THREE.DirectionalLight(0x8fb6a2, 0.5);
     rim.position.set(-80, 50, -90);
     this.scene.add(rim);
 
-    this.scene.add(new THREE.HemisphereLight(0x3a3f66, 0x050507, 0.45));
+    this.scene.add(new THREE.HemisphereLight(0xc0ded4, 0x786751, 0.8));
   }
 
   _ground() {
@@ -195,17 +189,17 @@ export class Scene {
     // the gaps the treemap leaves between them become the street grid.
     const ground = new THREE.Mesh(
       new THREE.PlaneGeometry(2400, 2400),
-      new THREE.MeshStandardMaterial({ color: 0x0b0b0e, roughness: 1, metalness: 0 })
+        new THREE.MeshStandardMaterial({ color: 0xb7aa90, roughness: 1, metalness: 0 })
     );
     ground.rotation.x = -Math.PI / 2;
     ground.receiveShadow = true;
     this.scene.add(ground);
 
-    // A faint survey grid, matching the dotted-grid floor in the design.
-    const grid = new THREE.GridHelper(2400, 300, 0x1b1b22, 0x131318);
+    // A low contrast stone grid keeps the street plan legible in daylight.
+    const grid = new THREE.GridHelper(2400, 300, 0x948b78, 0xc7bda8);
     grid.position.y = 0.01;
     grid.material.transparent = true;
-    grid.material.opacity = 0.75;
+    grid.material.opacity = 0.32;
     this.scene.add(grid);
   }
 

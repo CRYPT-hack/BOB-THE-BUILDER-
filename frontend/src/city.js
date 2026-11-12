@@ -23,10 +23,10 @@ const UNIT = new THREE.BoxGeometry(1, 1, 1);
 
 // Minecraft-themed colours for the city buildings
 // Gold marks selection, emerald marks activity, diamond for hover, stone for muted
-const SELECT_COLOR = new THREE.Color(0xffd83d); // Minecraft gold
-const HEAT_COLOR = new THREE.Color(0x4cd370);   // Minecraft emerald
-const HOVER_COLOR = new THREE.Color(0x5decf5);  // Minecraft diamond
-const MUTED_COLOR = new THREE.Color(0x555555);  // Minecraft stone dark
+const SELECT_COLOR = new THREE.Color(0xd7794e); // warm terracotta
+const HEAT_COLOR = new THREE.Color(0x4c9b78);   // celadon green
+const HOVER_COLOR = new THREE.Color(0x4d9ba2);  // glazed teal
+const MUTED_COLOR = new THREE.Color(0x817b6f);  // warm stone
 
 /**
  * The city is drawn at night, to sit inside the Obsidian UI (near-black,
@@ -107,9 +107,9 @@ function planMaterial({
           float roof = step(0.15, vObjN.y);
           float h = max(vScale.y, 1e-4);
 
-          // Dark zinc body with a trace of the accent, so a district of one
-          // language still reads as related from the side.
-          vec3 wall = vec3(0.066, 0.068, 0.080) + accent * 0.055;
+          // Warm lime plaster with a restrained language tint keeps the
+          // facades bright while preserving a subtle link to each district.
+          vec3 wall = vec3(0.56, 0.49, 0.37) + accent * 0.07;
           diffuseColor.rgb = wall;
 
           // Facade as structural BAYS, not a grid of dots: pilaster strip,
@@ -144,7 +144,7 @@ function planMaterial({
           float rnd = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
           float lit = step(0.46, rnd);
 
-          vec3 pane = mix(wall * 0.55, vec3(0.10, 0.11, 0.14), 0.5);
+          vec3 pane = mix(wall * 0.30, vec3(0.055, 0.17, 0.17), 0.5);
           diffuseColor.rgb = mix(diffuseColor.rgb, pane, glass);
 
           // Real walls have thickness, so glazing sits in a reveal: the head
@@ -154,13 +154,13 @@ function planMaterial({
           float reveal = glass * (1.0 - head * 0.55) * (1.0 - (1.0 - jamb) * 0.35);
 
           // Warm interior light, pulled toward the building's own accent.
-          vec3 room = mix(vec3(1.0, 0.83, 0.58), accent, 0.30);
-          totalEmissiveRadiance += room * lit * reveal * energy * 0.62;
+          vec3 room = mix(vec3(1.0, 0.77, 0.49), accent, 0.18);
+          totalEmissiveRadiance += room * lit * reveal * energy * 0.35;
 
           // Accent-coloured roof: from above, the city reads as a language
           // map; from the side, as dark towers with lit windows.
-          diffuseColor.rgb = mix(diffuseColor.rgb, accent * 0.9, roof * 0.82);
-          totalEmissiveRadiance += accent * roof * energy * 0.10;
+          vec3 glazedRoof = mix(vec3(0.10, 0.30, 0.25), accent * 0.62, 0.20);
+          diffuseColor.rgb = mix(diffuseColor.rgb, glazedRoof, roof * 0.92);
     ` : `
           // ---- District plate ---------------------------------------------
           // Dark ground zone; its tint arrives via the instance colour.
@@ -312,7 +312,7 @@ export class City {
         // is normalised into one lightness band so no language glares at
         // night and none disappears, and hue is nudged per file so
         // neighbours of one language stay individually readable.
-        const base = new THREE.Color(b.color);
+        const base = new THREE.Color(b.color).lerp(new THREE.Color(0xb5a78d), 0.72);
         base.getHSL(hsl);
         const j = hash(b.path);
         base.setHSL(
@@ -448,7 +448,7 @@ export class City {
   _refreshPlates() {
     if (!this.plates) return;
     let dirty = false;
-    const dim = new THREE.Color(0x0c0c0f);
+    const dim = new THREE.Color(0x746e62);
     const c = new THREE.Color();
     for (let i = 0; i < this.plateLive.length; i++) {
       const live = this.plateLive[i] > 0 ? 1 : 0;
