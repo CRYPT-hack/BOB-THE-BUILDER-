@@ -47,6 +47,7 @@ function planMaterial({
   const building = mode === 'building';
   const mat = new THREE.MeshStandardMaterial({
     color: 0xffffff, // modulated per-instance via instanceColor
+    vertexColors: true, // Cheoma's plaster, timber and tile colors per source mesh
     roughness: 0.78,
     metalness: 0.0,
     ...opts,
@@ -95,72 +96,10 @@ function planMaterial({
       );
 
     const surface = building ? `
-          // ---- Building --------------------------------------------------
-          vec3 accent = diffuseColor.rgb;
-          // How "switched on" this building is. A filtered-out building gets a
-          // dim grey accent, which drains its windows and roof along with it.
-          float energy = max(max(accent.r, accent.g), accent.b);
-
-          // Treat pitched roof planes as roofs too; vertical walls still carry
-          // the facade bays while Cheoma's angled tiles receive the roof tint.
-          float side = 1.0 - step(0.15, abs(vObjN.y));
-          float roof = step(0.15, vObjN.y);
-          float h = max(vScale.y, 1e-4);
-
-          // Warm lime plaster with a restrained language tint keeps the
-          // facades bright while preserving a subtle link to each district.
-          vec3 wall = vec3(0.56, 0.49, 0.37) + accent * 0.07;
-          diffuseColor.rgb = wall;
-
-          // Facade as structural BAYS, not a grid of dots: pilaster strip,
-          // recessed glazing, slab line at every storey. Both rhythms are in
-          // WORLD units so every building shares one storey height and bay
-          // width, and the facade stays put as a building grows on the
-          // timeline — new storeys stack on top rather than rescaling.
-          float faceW = mix(vScale.x, vScale.z, step(0.5, abs(vObjN.x))) * vWidthFrac;
-          float bxRaw = vUv.x * faceW / ${BAY_W.toFixed(2)};
-          float fyRaw = (vWorld.y - 0.30) / ${FLOOR_H.toFixed(2)};
-          float bx = fract(bxRaw);
-          float fy = fract(fyRaw);
-          float bw = fwidth(bx) * 1.5 + 0.02;
-          float fw = fwidth(fy) * 1.5 + 0.03;
-          float bay = smoothstep(0.28 - bw, 0.28 + bw, bx)
-                    * (1.0 - smoothstep(0.84 - bw, 0.84 + bw, bx));
-          float slab = smoothstep(0.80 - fw, 0.80 + fw, fy);
-          float glass = bay * (1.0 - slab) * side;
-          // Solid plinth, parapet, and no facade on anything too short to
-          // have storeys.
-          glass *= smoothstep(0.18, 0.5, vWorld.y);
-          glass *= 1.0 - smoothstep(h - 0.34, h - 0.10, vWorld.y);
-          glass *= smoothstep(0.7, 1.5, h);
-          gGlass = glass;
-
-          // Not every window is lit — a uniformly glowing grid reads as a
-          // texture, a scatter of lit and dark ones reads as a building with
-          // people in it. Each window cell hashes its own on/off state.
-          vec3 cell = vec3(floor(bxRaw) + floor(vWorld.x * 3.1),
-                           floor(fyRaw),
-                           floor(vWorld.z * 3.1) + vObjN.x * 7.0 + vObjN.z * 13.0);
-          float rnd = fract(sin(dot(cell, vec3(12.9898, 78.233, 37.719))) * 43758.5453);
-          float lit = step(0.46, rnd);
-
-          vec3 pane = mix(wall * 0.30, vec3(0.055, 0.17, 0.17), 0.5);
-          diffuseColor.rgb = mix(diffuseColor.rgb, pane, glass);
-
-          // Real walls have thickness, so glazing sits in a reveal: the head
-          // and one jamb fall into shadow. Without it a window is a decal.
-          float head = smoothstep(0.80, 0.62, fy);
-          float jamb = smoothstep(0.28, 0.40, bx);
-          float reveal = glass * (1.0 - head * 0.55) * (1.0 - (1.0 - jamb) * 0.35);
-
-          // Warm interior light, pulled toward the building's own accent.
-          vec3 room = mix(vec3(1.0, 0.77, 0.49), accent, 0.18);
-          totalEmissiveRadiance += room * lit * reveal * energy * 0.35;
-
-          // Accent-coloured roof: from above, the city reads as a language
-          // map; from the side, as dark towers with lit windows.
-          vec3 glazedRoof = mix(vec3(0.10, 0.30, 0.25), accent * 0.62, 0.20);
-          diffuseColor.rgb = mix(diffuseColor.rgb, glazedRoof, roof * 0.92);
+          // Cheoma's material colors are baked into the vertex colors. Keep
+          // those values intact so its timber, plaster and tiled roofs read
+          // like the source examples instead of office facades.
+          gGlass = 0.0;
     ` : `
           // ---- District plate ---------------------------------------------
           // Dark ground zone; its tint arrives via the instance colour.
@@ -307,19 +246,9 @@ export class City {
       buckets[a].forEach((i, gi) => {
         const b = list[i];
 
-        // The instance colour is this building's ACCENT: the shader turns it
-        // into a lit roof and warm windows over a dark body. GitHub's palette
-        // is normalised into one lightness band so no language glares at
-        // night and none disappears, and hue is nudged per file so
-        // neighbours of one language stay individually readable.
-        const base = new THREE.Color(b.color).lerp(new THREE.Color(0xb5a78d), 0.72);
-        base.getHSL(hsl);
-        const j = hash(b.path);
-        base.setHSL(
-          (hsl.h + (j - 0.5) * 0.04 + 1) % 1,
-          clamp(hsl.s * 0.65, 0.18, 0.48),
-          clamp(0.52 + (j - 0.5) * 0.06, 0.47, 0.58)
-        );
+        // Preserve Cheoma's baked surface colors; instance tint is reserved
+        // for selection, activity and language filtering states.
+        const base = new THREE.Color(0xffffff);
 
         const item = {
           b, base, h: 0, targetH: 0, heat: 0, loc: 0, dirty: true, g: a, gi,

@@ -119,8 +119,9 @@ const utility = () => merge([
 /**
  * Bake one of Cheoma's parametric Korean buildings into unit-cube geometry. CodeCity still
  * renders this as an InstancedMesh, so the richer roof and bracket silhouette
- * costs one draw call for the whole archetype. Cheoma's materials are not
- * copied: the city shader supplies its existing per-language finish.
+ * costs one draw call for the whole archetype. The source material colours are
+ * baked into vertex colours so Cheoma's ivory walls, timber and roof tones
+ * survive the shared instanced renderer.
  */
 function cheomaArchitecture(preset) {
   const root = buildBuilding({ ...PRESETS[preset] });
@@ -134,6 +135,13 @@ function cheomaArchitecture(preset) {
       const flat = geometry.index ? geometry.toNonIndexed() : geometry;
       if (flat !== geometry) geometry.dispose();
       if (!flat.attributes.normal) flat.computeVertexNormals();
+      const material = Array.isArray(object.material) ? object.material[0] : object.material;
+      const materialColor = material?.color || new THREE.Color(0xe6d8b9);
+      const colors = new Float32Array(flat.attributes.position.count * 3);
+      for (let i = 0; i < flat.attributes.position.count; i++) {
+        colors.set([materialColor.r, materialColor.g, materialColor.b], i * 3);
+      }
+      flat.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       flat.computeBoundingBox();
       sourceGeometries.push(flat);
     });
@@ -156,6 +164,7 @@ function cheomaArchitecture(preset) {
       const localSize = source.boundingBox.getSize(new THREE.Vector3());
       const positions = new Float32Array(pos.count * 3);
       const normals = new Float32Array(normal.count * 3);
+      const colors = new Float32Array(pos.count * 3);
       const uvs = new Float32Array(pos.count * 2);
       const widthFractions = new Float32Array(pos.count);
 
@@ -164,6 +173,7 @@ function cheomaArchitecture(preset) {
         const y = (pos.getY(i) - center.y) * sy;
         const z = (pos.getZ(i) - center.z) * sz;
         positions.set([x, y, z], i * 3);
+        colors.set([source.attributes.color.getX(i), source.attributes.color.getY(i), source.attributes.color.getZ(i)], i * 3);
         const nx = normal.getX(i) / sx;
         const ny = normal.getY(i) / sy;
         const nz = normal.getZ(i) / sz;
@@ -182,6 +192,7 @@ function cheomaArchitecture(preset) {
       const partGeometry = new THREE.BufferGeometry();
       partGeometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
       partGeometry.setAttribute('normal', new THREE.BufferAttribute(normals, 3));
+      partGeometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
       partGeometry.setAttribute('uv', new THREE.BufferAttribute(uvs, 2));
       partGeometry.setAttribute('aWidthFrac', new THREE.BufferAttribute(widthFractions, 1));
       mergedParts.push(partGeometry);
@@ -197,18 +208,6 @@ function cheomaArchitecture(preset) {
 }
 
 export const ARCHETYPES = [
-  { name: 'slab', build: slab },
-  { name: 'setback', build: setback },
-  { name: 'lshape', build: lshape },
-  { name: 'courtyard', build: courtyard },
-  { name: 'podium', build: podium },
-  { name: 'twin', build: twin },
-  { name: 'stepped', build: stepped },
-  { name: 'church', build: church },
-  { name: 'civicHall', build: civicHall },
-  { name: 'depot', build: depot },
-  { name: 'retail', build: retail },
-  { name: 'utility', build: utility },
   { name: 'koreanHall', build: () => cheomaArchitecture('korea') },
   { name: 'hanok', build: () => cheomaArchitecture('temple') },
   { name: 'choga', build: () => cheomaArchitecture('choga') },
@@ -216,9 +215,7 @@ export const ARCHETYPES = [
 ];
 
 const A = {
-  slab: 0, setback: 1, lshape: 2, courtyard: 3, podium: 4, twin: 5, stepped: 6,
-  church: 7, civicHall: 8, depot: 9, retail: 10, utility: 11,
-  koreanHall: 12, hanok: 13, choga: 14, giwa: 15,
+  koreanHall: 0, hanok: 1, choga: 2, giwa: 3,
 };
 
 let cache = null;
@@ -261,78 +258,14 @@ function kindOf(lang) {
  * turn to noise. `j` is the file's stable hash, so a file keeps its shape.
  */
 export function pickArchetype(maxLoc, j, lang, minSide = Infinity) {
-  // Complex massing needs room. On a small plot a mast, a tank or a set of
-  // twin wings collapse to a few pixels and read as damage rather than
-  // detail, so anything on a tight footprint stays a clean box no matter how
-  // many lines it holds.
-  if (minSide < 1.6) return A.slab;
-
   const kind = kindOf(lang);
-
-  if (kind === 'civic') {
-    if (maxLoc < 40) return A.retail;            // a notice board, not a church
-    if (maxLoc < 400) {
-      if (j < 0.25) return A.civicHall;
-      if (j < 0.52) return A.hanok;
-      if (j < 0.78) return A.giwa;
-      return j < 0.9 ? A.church : A.choga;
-    }
-    return j < 0.34 ? A.koreanHall : j < 0.68 ? A.hanok : A.civicHall;
-  }
-
-  if (kind === 'misc') {
-    if (maxLoc < 80) {
-      if (j < 0.5) return A.slab;
-      if (j < 0.7) return A.retail;
-      return j < 0.86 ? A.utility : A.choga;
-    }
-    if (j < 0.35) return A.depot;
-    if (j < 0.55) return A.slab;
-    if (j < 0.78) return A.lshape;
-    return A.choga;
-  }
-
-  if (kind === 'works') {
-    if (maxLoc < 30) return j < 0.6 ? A.utility : A.slab;
-    if (maxLoc < 300) return j < 0.42 ? A.depot : j < 0.72 ? A.giwa : A.utility;
-    return j < 0.55 ? A.depot : j < 0.78 ? A.koreanHall : A.courtyard; // big yards read as depots
-  }
-
-  if (kind === 'retail') {
-    if (maxLoc < 250) return j < 0.58 ? A.retail : A.giwa;
-    return j < 0.48 ? A.retail : j < 0.76 ? A.giwa : A.stepped; // parade over shops
-  }
-
-  // ---- Commercial: the office stock -------------------------------------
-  // Tiny files: a shed is a shed. Complex massing on a 2m footprint just
-  // reads as noise.
-  if (maxLoc < 25) return A.slab;
-
-  if (maxLoc < 120) {                            // low-rise
-    if (j < 0.45) return A.slab;
-    if (j < 0.68) return A.twin;
-    if (j < 0.86) return A.stepped;
-    return A.choga;
-  }
-
-  if (maxLoc < 500) {                            // mid-rise
-    if (j < 0.26) return A.stepped;
-    if (j < 0.50) return A.lshape;
-    if (j < 0.70) return A.twin;
-    if (j < 0.82) return A.courtyard;
-    return A.giwa;
-  }
-
-  if (maxLoc < 1500) {                           // large block
-    if (j < 0.30) return A.courtyard;
-    if (j < 0.55) return A.lshape;
-    if (j < 0.78) return A.podium;
-    return j < 0.9 ? A.setback : A.koreanHall;
-  }
-
-  // Landmarks. A building this tall should read as a tower, so only the
-  // vertical archetypes apply — a courtyard stretched to 28 units tall looks
-  // like a chimney, not a block.
-  return j < 0.47 ? A.setback : j < 0.85 ? A.podium : A.koreanHall;
+  // Every file now uses Cheoma architecture. File kind and size only choose
+  // among Cheoma's palace hall, temple hall, tiled house and thatched cottage.
+  if (kind === 'civic' || maxLoc >= 1500) return j < 0.52 ? A.koreanHall : A.hanok;
+  if (kind === 'works') return j < 0.42 ? A.giwa : j < 0.78 ? A.choga : A.hanok;
+  if (kind === 'retail') return j < 0.62 ? A.giwa : A.hanok;
+  if (kind === 'misc' || maxLoc < 120) return j < 0.68 ? A.choga : A.giwa;
+  if (maxLoc < 500) return j < 0.5 ? A.giwa : j < 0.78 ? A.hanok : A.choga;
+  return j < 0.45 ? A.koreanHall : j < 0.78 ? A.hanok : A.giwa;
 }
 
