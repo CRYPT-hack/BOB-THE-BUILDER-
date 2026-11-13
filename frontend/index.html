@@ -145,125 +145,482 @@
       animation: pickaxeSwing 0.75s ease-in-out infinite;
     }
 
-    /* Spark Particle Animation */
-    @keyframes particleBurst {
-      0% {
-        opacity: 1;
-        transform: translate(0, 0) scale(1);
-      }
-      100% {
-        opacity: 0;
-        transform: translate(var(--tx), var(--ty)) scale(0.2);
-      }
-    }
-
-    .spark {
-      position: absolute;
-      animation: particleBurst 0.6s ease-out infinite;
-    }
   </style>
-<!-- END: Custom Retro Styles -->
+<style data-purpose="steve-and-grade">
+  :root {
+    --mc-skin: #c99a6b;   --mc-skin-shade: #a97c50;
+    --mc-hair: #2b1f10;   --mc-shirt: #00a8a8;
+    --mc-pants: #3b3bb0;  --mc-gem: #4aedd9;
+    --mc-sky-1: #3f7fe0;  --mc-sky-2: #4f8ee8;  --mc-sky-3: #609ded;
+    --mc-sky-4: #7ab3f2;  --mc-sky-5: #9ccaf8;  --mc-sky-6: #c6e2fb;
+  }
+
+  /* ---------- banded Minecraft sky (posterised, not a smooth gradient) ---- */
+  .mc-sky {
+    background: linear-gradient(180deg,
+      var(--mc-sky-1) 0%,   var(--mc-sky-1) 16%,
+      var(--mc-sky-2) 16%,  var(--mc-sky-2) 34%,
+      var(--mc-sky-3) 34%,  var(--mc-sky-3) 53%,
+      var(--mc-sky-4) 53%,  var(--mc-sky-4) 71%,
+      var(--mc-sky-5) 71%,  var(--mc-sky-5) 86%,
+      var(--mc-sky-6) 86%,  var(--mc-sky-6) 100%);
+  }
+
+  /* clouds get the stacked Minecraft silhouette instead of one flat slab */
+  .pixel-cloud > div { position: relative; }
+  .pixel-cloud > div::before {
+    content: "";
+    position: absolute;
+    left: 18px;
+    top: -18px;
+    width: 46%;
+    height: 18px;
+    background: inherit;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.55);
+  }
+
+  /* ---------- Steve rig -------------------------------------------------- */
+  .steve-svg { display: block; overflow: visible; image-rendering: pixelated; }
+  .steve-stage { filter: drop-shadow(0 6px 0 rgba(12, 26, 8, 0.28)); }
+
+  /* ---------- walking Steve --------------------------------------------- */
+  .steve-walker {
+    position: absolute;
+    left: 1rem;
+    bottom: 0.5rem;
+    animation: steveWalkPath 16s linear infinite;
+    will-change: transform;
+  }
+  /* viewport-based travel keeps the walk range sane at every width */
+  @keyframes steveWalkPath {
+    0%, 2%   { transform: translateX(0); }
+    40%      { transform: translateX(calc(38vw - 110px)); }
+    52%      { transform: translateX(calc(38vw - 110px)); }
+    90%      { transform: translateX(0); }
+    100%     { transform: translateX(0); }
+  }
+  .steve-leg-l, .steve-leg-r { transform-box: view-box; }
+  .steve-leg-l { transform-origin: 12px 20px; animation: steveStepL 16s linear infinite; }
+  .steve-leg-r { transform-origin: 16px 20px; animation: steveStepR 16s linear infinite; }
+  @keyframes steveStepL {
+    0%, 2.5% { transform: rotate(0deg); }
+    2.0%      { transform: rotate(15deg); }
+    8.0%      { transform: rotate(-15deg); }
+    14.0%      { transform: rotate(15deg); }
+    20.0%      { transform: rotate(-15deg); }
+    26.0%      { transform: rotate(15deg); }
+    32.0%      { transform: rotate(-15deg); }
+    52.0%      { transform: rotate(15deg); }
+    58.0%      { transform: rotate(-15deg); }
+    64.0%      { transform: rotate(15deg); }
+    70.0%      { transform: rotate(-15deg); }
+    76.0%      { transform: rotate(15deg); }
+    82.0%      { transform: rotate(-15deg); }
+    40%, 52% { transform: rotate(0deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+  @keyframes steveStepR {
+    0%, 2.5% { transform: rotate(0deg); }
+    2.0%      { transform: rotate(-15deg); }
+    8.0%      { transform: rotate(15deg); }
+    14.0%      { transform: rotate(-15deg); }
+    20.0%      { transform: rotate(15deg); }
+    26.0%      { transform: rotate(-15deg); }
+    32.0%      { transform: rotate(15deg); }
+    52.0%      { transform: rotate(-15deg); }
+    58.0%      { transform: rotate(15deg); }
+    64.0%      { transform: rotate(-15deg); }
+    70.0%      { transform: rotate(15deg); }
+    76.0%      { transform: rotate(-15deg); }
+    82.0%      { transform: rotate(15deg); }
+    40%, 52% { transform: rotate(0deg); }
+    90%, 100% { transform: rotate(0deg); }
+  }
+
+  #steve-rig, .steve-head, .steve-torso, .steve-legs, #steve-arm {
+    transform-box: view-box;
+  }
+  #steve-rig { transform-origin: 14px 32px; animation: steveBob 1.15s steps(1, end) infinite; }
+  .steve-head { transform-origin: 14px 8px; animation: steveHeadNod 1.15s ease-in-out infinite; }
+  #steve-arm  { transform-origin: 20px 9px; animation: steveChop 16s linear infinite; }
+  .steve-arm-left { transform-origin: 8px 9px; animation: steveArmIdle 1.15s ease-in-out infinite; }
+
+  /* walk to the far end, stop, wind up, strike, carry the pick back home */
+  @keyframes steveChop {
+    0%, 2%   { transform: rotate(4deg); }
+    30%      { transform: rotate(0deg); }
+    38%      { transform: rotate(-10deg); }
+    43%      { transform: rotate(-22deg); }
+    45%      { transform: rotate(16deg); }
+    46.5%    { transform: rotate(16deg); }
+    48%      { transform: rotate(11deg); }
+    50%      { transform: rotate(6deg); }
+    52%      { transform: rotate(4deg); }
+    80%      { transform: rotate(0deg); }
+    86%      { transform: rotate(-10deg); }
+    91%      { transform: rotate(-22deg); }
+    93%      { transform: rotate(16deg); }
+    94.5%    { transform: rotate(16deg); }
+    96%      { transform: rotate(11deg); }
+    98%      { transform: rotate(4deg); }
+    100%     { transform: rotate(4deg); }
+  }
+  @keyframes steveArmIdle {
+    0%, 100% { transform: rotate(-3deg); }
+    30%      { transform: rotate(4deg); }
+    58%      { transform: rotate(-3deg); }
+  }
+  @keyframes steveHeadNod {
+    0%, 100% { transform: rotate(-2deg) translateY(0); }
+    28%      { transform: rotate(-5deg) translateY(-1px); }
+    34%      { transform: rotate(2deg) translateY(1px); }
+    50%      { transform: rotate(0deg) translateY(0); }
+  }
+  @keyframes steveBob {
+    0%, 28%  { transform: translateY(0); }
+    29%, 56% { transform: translateY(-1px); }
+    57%, 100%{ transform: translateY(0); }
+  }
+
+  /* the pickaxe lags the arm, so the swing carries weight */
+  .steve-pickaxe {
+    transform-box: view-box;
+    transform-origin: 20px 19px;
+    animation: stevePickSwing 16s linear infinite;
+  }
+  @keyframes stevePickSwing {
+    0%, 2%    { transform: rotate(-6deg); }
+    30%       { transform: rotate(-10deg); }
+    38%       { transform: rotate(-14deg); }
+    43%       { transform: rotate(-26deg); }
+    45%       { transform: rotate(64deg); }
+    46.5%     { transform: rotate(64deg); }
+    48%       { transform: rotate(40deg); }
+    50%       { transform: rotate(10deg); }
+    52%       { transform: rotate(-6deg); }
+    80%       { transform: rotate(-10deg); }
+    86%       { transform: rotate(-14deg); }
+    91%       { transform: rotate(-26deg); }
+    93%       { transform: rotate(64deg); }
+    94.5%     { transform: rotate(64deg); }
+    96%       { transform: rotate(40deg); }
+    98%       { transform: rotate(6deg); }
+    100%      { transform: rotate(-6deg); }
+  }
+  /* a small forward lean on the two impact frames */
+  .steve-stage { animation: steveLean 16s linear infinite; }
+  @keyframes steveLean {
+    0%, 44%   { transform: rotate(0deg); }
+    45%       { transform: rotate(2.5deg); }
+    47%       { transform: rotate(1deg); }
+    52%, 92%  { transform: rotate(0deg); }
+    93%       { transform: rotate(2.5deg); }
+    95%       { transform: rotate(1deg); }
+    100%      { transform: rotate(0deg); }
+  }
+
+  /* ---------- sparks: keyed to the two strike frames --------------------- */
+  .spark { position: absolute; }
+
+  /* Spark Particle Animation */
+    @keyframes particleBurst {
+    0%, 44.5% { opacity: 0; transform: translate(0, 0) scale(1); }
+    45.2%     { opacity: 1; transform: translate(0, 0) scale(1); }
+    53%       { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(.2); }
+    92.5%     { opacity: 0; transform: translate(0, 0) scale(1); }
+    93.2%     { opacity: 1; transform: translate(0, 0) scale(1); }
+    100%      { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(.2); }
+  }
+  .spark { animation: particleBurst 16s linear infinite; }
+
+  /* ---------- colour grade ---------------------------------------------- */
+  .mc-grade > div { position: absolute; inset: 0; }
+
+  /* warm sun from the top right, cool bounce from the grass, deep corners */
+  .mc-grade-tint {
+    background:
+      radial-gradient(58% 42% at 84% 0%, rgba(255, 236, 168, 0.20), rgba(255, 236, 168, 0) 60%),
+      radial-gradient(120% 66% at 50% 120%, rgba(20, 54, 24, 0.22), rgba(20, 54, 24, 0) 56%);
+    mix-blend-mode: soft-light;
+  }
+  .mc-grade-dither {
+    background-image: radial-gradient(rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+    background-size: 4px 4px;
+    opacity: 0.30;
+    mix-blend-mode: overlay;
+  }
+  .mc-grade-vignette {
+    background: radial-gradient(118% 98% at 50% 44%,
+      rgba(0, 0, 0, 0) 54%, rgba(6, 12, 20, 0.22) 84%, rgba(4, 8, 14, 0.42) 100%);
+    /* the actual grade: richer colour, deeper contrast, no blur */
+    -webkit-backdrop-filter: saturate(1.10) contrast(1.05);
+    backdrop-filter: saturate(1.10) contrast(1.05);
+  }
+
+  /* ---------- Minecraft UI polish --------------------------------------- */
+  .mc-ground {
+    background-image:
+      repeating-linear-gradient(90deg, rgba(0, 0, 0, .16) 0 2px, transparent 2px 16px),
+      repeating-linear-gradient(180deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 16px),
+      linear-gradient(180deg, #7a5233 0%, #6b4a2f 44%, #5b3f28 100%);
+  }
+  /* every MC surface keeps the same 4px bevel grammar */
+  .pixel-border-stone, [data-purpose="minecraft-input-dialog"] {
+    box-shadow: inset -4px -4px 0 0 #4a4a4a, inset 4px 4px 0 0 #e6e6e6, 0 18px 44px rgba(0, 0, 0, .55);
+  }
+  button, a { -webkit-tap-highlight-color: transparent; }
+  :focus-visible { outline: 3px solid #ffd83d; outline-offset: 2px; }
+  ::selection { background: #4cd370; color: #06110a; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .steve-walker, .steve-leg-l, .steve-leg-r, #steve-rig, .steve-head, #steve-arm, .steve-arm-left, .spark,
+    .pixel-cloud, .petal, .mc-splash-text { animation: none !important; }
+    .spark { opacity: 0; }
+  }
+</style>
+<!-- END: Steve rig + Minecraft colour grade -->
+<!-- BEGIN: Minecraft voxel objects (trees, ridges, terrain) -->
+<style data-purpose="mc-voxel-objects">
+  /* leaf block: dense pixel speckle, no outline — reads as Minecraft foliage */
+  .mc-leaf {
+    position: absolute;
+    background-color: #4e8b2b;
+    background-image:
+      radial-gradient(#63a637 2px, transparent 2px),
+      radial-gradient(#3c6f21 2px, transparent 2px);
+    background-size: 12px 12px, 12px 12px;
+    background-position: 0 0, 6px 6px;
+    box-shadow:
+      inset 0 5px 0 rgba(139, 205, 100, 0.45),
+      inset 0 -7px 0 rgba(38, 70, 20, 0.55),
+      10px 12px 0 rgba(24, 48, 15, 0.16);
+  }
+  .mc-leaf--deep {
+    background-color: #3c6f21;
+    background-image:
+      radial-gradient(#4e8b2b 2px, transparent 2px),
+      radial-gradient(#2f5a1a 2px, transparent 2px);
+  }
+  /* oak bark: vertical grain plus growth rings */
+  .mc-trunk {
+    position: absolute;
+    background-color: #6b4a2e;
+    background-image:
+      repeating-linear-gradient(90deg, #563a23 0 2px, transparent 2px 9px),
+      repeating-linear-gradient(180deg, rgba(0, 0, 0, 0.13) 0 2px, transparent 2px 12px);
+    box-shadow:
+      inset 6px 0 0 #82603c,
+      inset -7px 0 0 #4e3320,
+      10px 12px 0 rgba(24, 48, 15, 0.16);
+  }
+  /* terrain blocks */
+  .mc-grass-top {
+    background-color: #6fae3d;
+    background-image: radial-gradient(#5b9430 2px, transparent 2px);
+    background-size: 10px 10px;
+    box-shadow: inset 0 4px 0 #86c451, inset 0 -3px 0 #4b7c27;
+  }
+  .mc-dirt {
+    background-color: #8b5a33;
+    background-image:
+      radial-gradient(#6e4526 2.4px, transparent 2.4px),
+      radial-gradient(#a06a3d 2px, transparent 2px);
+    background-size: 14px 14px, 14px 14px;
+    background-position: 0 0, 7px 7px;
+  }
+  /* foreground shelf: grass band, dirt body, stone bedrock */
+  .mc-terrain-shelf {
+    background:
+      linear-gradient(180deg, #86c451 0 4px, #6fae3d 4px 12px, #4b7c27 12px 16px, transparent 16px),
+      linear-gradient(180deg, transparent 0 16px, #8b5a33 16px 30px, #7a4d2b 30px 100%);
+  }
+</style>
+<!-- END: Minecraft voxel objects -->
+<!-- BEGIN: Minecraft hero refinement -->
+<style data-purpose="mc-refine">
+  /* three blades of tall grass, different heights, no outline */
+  .mc-tuft {
+    position: absolute;
+    bottom: 12px;
+    width: 24px;
+    pointer-events: none;
+    background-repeat: no-repeat;
+    background-image:
+      linear-gradient(#2f5a1a, #2f5a1a),
+      linear-gradient(#4e8b2b, #4e8b2b),
+      linear-gradient(#63a637, #63a637);
+    background-size: 4px 100%, 5px 68%, 4px 86%;
+    background-position: 0 100%, 9px 100%, 17px 100%;
+  }
+  /* atmospheric separation between the stepped ridges */
+  .mc-ridge-haze {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 158px;
+    height: 96px;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(220, 240, 255, 0) 0%, rgba(220, 240, 255, 0.14) 70%, rgba(220, 240, 255, 0.20) 100%);
+  }
+  /* clouds get a second, smaller tier so the silhouette is not one slab */
+  .pixel-cloud > div::after {
+    content: "";
+    position: absolute;
+    right: 22px;
+    top: -34px;
+    width: 38%;
+    height: 16px;
+    background: inherit;
+  }
+</style>
+<!-- END: Minecraft hero refinement -->
+
 </head>
 <body class="bg-[#78b7ff] text-white font-sans antialiased overflow-hidden selection:bg-mc-emerald selection:text-black h-screen relative flex flex-col justify-between">
+<!-- BEGIN: Minecraft colour grade (presentation only) -->
+<div class="mc-grade fixed inset-0 z-[70] pointer-events-none" aria-hidden="true">
+<div class="mc-grade-tint"></div>
+<div class="mc-grade-dither"></div>
+<div class="mc-grade-vignette"></div>
+</div>
+<!-- END: Minecraft colour grade -->
+
 <!-- BEGIN: Animated Bright Sky & Cheerful Cherry Grove Voxel Environment Background -->
 <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden" data-purpose="minecraft-environment">
 <!-- Vibrant Cheerful Daytime Sky Gradient with Sun Rays -->
-<div class="absolute inset-0 bg-gradient-to-b from-[#5698f5] via-[#7bb4fb] via-45% to-[#c2e1ff]"></div>
+<div class="absolute inset-0 mc-sky"></div>
 <!-- Warm Sun Burst / Sunlight Glow in upper right corner -->
 <div class="absolute -top-16 right-12 w-96 h-96 bg-yellow-200/30 rounded-full blur-3xl pointer-events-none"></div>
 <div class="absolute top-8 right-24 w-20 h-20 bg-[#fffbe6] border-4 border-[#fff176] shadow-[0_0_40px_rgba(255,245,150,0.8),inset_-4px_-4px_0_#fbc02d] z-0 hidden md:block"></div>
 <!-- Drifting Minecraft Blocky Clouds -->
-<div class="pixel-cloud top-10 opacity-90" style="animation-duration: 90s; left: -15%;">
-<div class="w-80 h-14 bg-white shadow-[8px_8px_0_rgba(180,210,245,0.7),-8px_4px_0_rgba(195,220,250,0.6)] border-b-2 border-slate-200/80"></div>
+<div class="pixel-cloud top-10 opacity-55" style="animation-duration: 90s; left: -15%;">
+<div class="w-80 h-14 bg-[#f2f8ff] shadow-[6px_6px_0_rgba(196,222,247,0.45)] border-b-2 border-white/60"></div>
 </div>
-<div class="pixel-cloud top-24 opacity-80" style="animation-duration: 130s; left: 30%;">
-<div class="w-96 h-16 bg-white shadow-[12px_10px_0_rgba(180,210,245,0.7),-12px_6px_0_rgba(195,220,250,0.6)] border-b-2 border-slate-200/80"></div>
+<div class="pixel-cloud top-24 opacity-50" style="animation-duration: 130s; left: 30%;">
+<div class="w-96 h-16 bg-[#f2f8ff] shadow-[8px_8px_0_rgba(196,222,247,0.45)] border-b-2 border-white/60"></div>
 </div>
-<div class="pixel-cloud top-8 opacity-75" style="animation-duration: 150s; left: 65%;">
-<div class="w-56 h-12 bg-white shadow-[6px_6px_0_rgba(180,210,245,0.6)]"></div>
+<div class="pixel-cloud top-8 opacity-45" style="animation-duration: 150s; left: 65%;">
+<div class="w-56 h-12 bg-[#f2f8ff] shadow-[5px_5px_0_rgba(196,222,247,0.4)]"></div>
 </div>
-<!-- Distant Pastel Mountain Peaks (Minecraft Stepped Voxel Ridge) -->
-<svg class="absolute bottom-12 w-full h-[200px] opacity-45" preserveAspectRatio="none" viewBox="0 0 1440 360">
-<path d="M0,360 L0,220 L60,220 L60,190 L140,190 L140,160 L240,160 L240,190 L340,190 L340,130 L450,130 L450,100 L540,100 L540,160 L680,160 L680,80 L790,80 L790,140 L930,140 L930,110 L1060,110 L1060,170 L1190,170 L1190,130 L1300,130 L1300,190 L1440,190 L1440,360 Z" fill="#6ba7e6"></path>
-<path d="M0,360 L0,250 L120,250 L120,220 L280,220 L280,240 L480,240 L480,180 L620,180 L620,210 L840,210 L840,170 L1000,170 L1000,230 L1200,230 L1200,200 L1340,200 L1340,260 L1440,260 L1440,360 Z" fill="#7ebd5b"></path>
+<!-- Distant stepped voxel ridges (far haze, mid forest, near meadow) -->
+<svg class="absolute bottom-10 left-0 w-full h-[300px] pointer-events-none" viewBox="0 0 1440 260" preserveAspectRatio="none" aria-hidden="true">
+<path d="M0,260 L0,150 L80,150 L80,120 L150,120 L150,70 L210,70 L210,120 L300,120 L300,96 L380,96 L380,52 L440,52 L440,110 L560,110 L560,140 L640,140 L640,90 L700,90 L700,44 L760,44 L760,100 L880,100 L880,128 L960,128 L960,84 L1030,84 L1030,120 L1140,120 L1140,60 L1200,60 L1200,116 L1320,116 L1320,150 L1440,150 L1440,260 Z" fill="#8ab7e6" opacity="0.42"></path>
+<path d="M0,260 L0,186 L90,186 L90,160 L180,160 L180,186 L260,186 L260,140 L330,140 L330,168 L430,168 L430,120 L520,120 L520,164 L610,164 L610,132 L700,132 L700,170 L790,170 L790,126 L880,126 L880,158 L990,158 L990,118 L1080,118 L1080,166 L1180,166 L1180,140 L1290,140 L1290,176 L1380,176 L1380,196 L1440,196 L1440,260 Z" fill="#74ab63" opacity="0.78"></path>
+<path d="M0,260 L0,222 L120,222 L120,206 L230,206 L230,224 L320,224 L320,196 L420,196 L420,216 L520,216 L520,190 L620,190 L620,214 L740,214 L740,200 L860,200 L860,220 L980,220 L980,196 L1100,196 L1100,218 L1220,218 L1220,204 L1330,204 L1330,222 L1440,222 L1440,260 Z" fill="#568c46"></path>
 </svg>
-<!-- Stepped Rolling Cherry Blossom Hills & Grass Cliffs -->
-<svg class="absolute bottom-12 w-full h-[180px] opacity-90" preserveAspectRatio="none" viewBox="0 0 1440 290"><!-- Distant stepped green hills behind -->
-<path d="M0,290 L0,200 L100,200 L100,180 L220,180 L220,210 L380,210 L380,170 L520,170 L520,195 L720,195 L720,160 L880,160 L880,190 L1040,190 L1040,175 L1200,175 L1200,205 L1360,205 L1360,185 L1440,185 L1440,290 Z" fill="#76b840"></path>
-<!-- Lush vibrant Minecraft emerald/lime grass hills -->
-<path d="M0,290 L0,225 L140,225 L140,205 L300,205 L300,230 L500,230 L500,190 L700,190 L700,220 L920,220 L920,185 L1120,185 L1120,215 L1300,215 L1300,195 L1440,195 L1440,290 Z" fill="#5da628"></path>
-<!-- Terraced grass dark ledge step -->
-<path d="M0,290 L0,250 L180,250 L180,235 L380,235 L380,260 L640,260 L640,225 L880,225 L880,250 L1160,250 L1160,230 L1440,230 L1440,290 Z" fill="#467c20"></path></svg>
-<!-- LEFT FLANK: Lush Cherry Blossom & Oak Minecraft Trees -->
-<div class="absolute bottom-12 left-0 z-10 pointer-events-none select-none hidden sm:block"><!-- Minimal Minecraft Oak Tree 1 (Slender, compact, clean) -->
-<div class="relative w-32 h-56">
-  <!-- Compact Leaf Canopy -->
-  <!-- Top Cap -->
-  <div class="absolute top-6 left-12 w-20 h-10 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80,inset_-2px_-2px_0_#166534]">
-    <div class="absolute top-1 left-2 w-3 h-3 bg-[#4ade80]"></div>
-    <div class="absolute top-2 right-3 w-2 h-2 bg-white/80"></div>
-  </div>
-  <!-- Main Canopy Cube -->
-  <div class="absolute top-14 left-6 w-32 h-24 bg-[#16a34a] border-4 border-[#15803d] shadow-[inset_4px_4px_0_#22c55e,inset_-4px_-4px_0_#14532d]">
-    <div class="absolute top-2 left-4 w-4 h-4 bg-[#4ade80]"></div>
-    <div class="absolute top-3 right-5 w-4 h-4 bg-[#22c55e]"></div>
-    <div class="absolute bottom-3 left-6 w-3 h-3 bg-[#15803d]"></div>
-    <!-- Subtle delicate tiny petal/flower accents -->
-    <div class="absolute top-2 right-3 w-1.5 h-1.5 bg-[#fbcfe8]" title="blossom bud"></div>
-    <div class="absolute bottom-2 right-6 w-1.5 h-1.5 bg-[#fde047]" title="dandelion bud"></div>
-    <div class="absolute bottom-4 left-3 w-1.5 h-1.5 bg-white"></div>
-  </div>
-  <!-- Slender Wood Trunk -->
-  <div class="absolute top-36 left-18 w-8 h-40 bg-[#5c3a21] border-2 border-[#3b2110] shadow-[inset_2px_0_0_#784824]">
-    <div class="w-full h-4 bg-[#4a2e18] mt-6"></div>
-    <div class="w-full h-5 bg-[#4a2e18] mt-8"></div>
-  </div>
+<div class="mc-ridge-haze"></div>
+<!-- LEFT FLANK: big stepped oak, trunk rooted behind the grass shelf -->
+<div class="mc-tree absolute bottom-8 left-0 hidden sm:block" style="width:250px;height:320px">
+<div class="mc-leaf" style="top:0px;left:96px;width:60px;height:18px"></div>
+<div class="mc-leaf" style="top:14px;left:72px;width:108px;height:18px"></div>
+<div class="mc-leaf" style="top:30px;left:50px;width:152px;height:22px"></div>
+<div class="mc-leaf" style="top:50px;left:30px;width:192px;height:26px"></div>
+<div class="mc-leaf" style="top:76px;left:20px;width:212px;height:26px"></div>
+<div class="mc-leaf" style="top:102px;left:36px;width:180px;height:22px"></div>
+<div class="mc-leaf" style="top:122px;left:62px;width:128px;height:16px"></div>
+<div class="mc-leaf mc-leaf--deep" style="top:58px;left:44px;width:70px;height:12px"></div>
+<div class="mc-leaf mc-leaf--deep" style="top:86px;left:150px;width:54px;height:14px"></div>
+<div class="mc-dirt absolute" style="top:306px;left:84px;width:82px;height:4px"></div>
+<div class="mc-grass-top absolute" style="top:302px;left:84px;width:90px;height:8px"></div>
+<div class="mc-leaf" style="top:44px;left:12px;width:34px;height:16px"></div>
+<div class="mc-leaf" style="top:70px;left:214px;width:30px;height:14px"></div>
+<div class="mc-leaf" style="top:96px;left:6px;width:28px;height:12px"></div>
+<div class="mc-leaf" style="top:110px;left:198px;width:34px;height:16px"></div>
+<div class="mc-leaf" style="top:132px;left:76px;width:22px;height:12px"></div>
+<div class="mc-leaf" style="top:132px;left:148px;width:24px;height:10px"></div>
+<div class="mc-trunk" style="top:136px;left:112px;width:26px;height:184px"></div>
 </div>
-
-<!-- Small Secondary Spaced Tree Behind -->
-<div class="absolute bottom-4 left-28 w-28 h-52 -z-10 opacity-90">
-  <!-- Leaf Cap -->
-  <div class="absolute top-0 left-4 w-20 h-16 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80]">
-    <div class="absolute top-2 left-2 w-3 h-3 bg-[#4ade80]"></div>
-    <div class="absolute top-1 right-2 w-1.5 h-1.5 bg-[#fbcfe8]"></div>
-  </div>
-  <!-- Trunk -->
-  <div class="absolute top-16 left-10 w-6 h-32 bg-[#5c3a21] border border-[#3b2110]"></div>
-</div></div>
-<!-- RIGHT FLANK: Lush Cherry Blossom & Oak Minecraft Trees -->
-<div class="absolute bottom-12 right-0 z-10 pointer-events-none select-none hidden sm:block"><!-- Spaced Minimal Oak Tree on Right -->
-<div class="relative w-36 h-64 ml-4">
-  <!-- Compact Upper Leaf Canopy -->
-  <div class="absolute top-4 right-14 w-20 h-10 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80,inset_-2px_-2px_0_#166534]">
-    <div class="absolute top-1 right-3 w-3 h-3 bg-[#4ade80]"></div>
-    <div class="absolute top-2 left-3 w-1.5 h-1.5 bg-[#fde047]"></div>
-  </div>
-  <!-- Main Foliage Block -->
-  <div class="absolute top-12 right-8 w-32 h-26 bg-[#16a34a] border-4 border-[#15803d] shadow-[inset_4px_4px_0_#22c55e,inset_-4px_-4px_0_#14532d]">
-    <div class="absolute top-3 left-4 w-4 h-4 bg-[#4ade80]"></div>
-    <div class="absolute top-4 right-6 w-4 h-4 bg-[#22c55e]"></div>
-    <div class="absolute bottom-2 left-6 w-3 h-3 bg-[#15803d]"></div>
-    <!-- Tiny delicate pixel blossom/flower accents -->
-    <div class="absolute top-3 right-3 w-1.5 h-1.5 bg-white"></div>
-    <div class="absolute bottom-3 right-4 w-1.5 h-1.5 bg-[#fbcfe8]"></div>
-    <div class="absolute top-7 left-2 w-1.5 h-1.5 bg-[#fde047]"></div>
-  </div>
-  <!-- Slender Wood Trunk -->
-  <div class="absolute top-36 right-20 w-8 h-44 bg-[#5c3a21] border-2 border-[#3b2110] shadow-[inset_2px_0_0_#784824]">
-    <div class="w-full h-4 bg-[#4a2e18] mt-8"></div>
-    <div class="w-full h-5 bg-[#4a2e18] mt-10"></div>
-  </div>
+<div class="mc-tree absolute bottom-8 left-[238px] hidden md:block opacity-95" style="width:120px;height:170px">
+<div class="mc-leaf" style="top:0px;left:38px;width:42px;height:12px"></div>
+<div class="mc-leaf" style="top:10px;left:24px;width:72px;height:14px"></div>
+<div class="mc-leaf" style="top:24px;left:12px;width:96px;height:16px"></div>
+<div class="mc-leaf" style="top:42px;left:26px;width:68px;height:12px"></div>
+<div class="mc-leaf mc-leaf--deep" style="top:28px;left:58px;width:34px;height:10px"></div>
+<div class="mc-dirt absolute" style="top:154px;left:40px;width:40px;height:4px"></div>
+<div class="mc-grass-top absolute" style="top:150px;left:40px;width:48px;height:8px"></div>
+<div class="mc-leaf" style="top:18px;left:4px;width:22px;height:12px"></div>
+<div class="mc-leaf" style="top:30px;left:88px;width:22px;height:10px"></div>
+<div class="mc-leaf" style="top:44px;left:6px;width:16px;height:8px"></div>
+<div class="mc-trunk" style="top:58px;left:52px;width:14px;height:104px"></div>
 </div>
-
-<!-- Small background sapling/shrub cleanly spaced -->
-<div class="absolute bottom-2 right-36 w-16 h-28 -z-10 opacity-80">
-  <div class="w-14 h-12 bg-[#22c55e] border-2 border-[#15803d] shadow-[inset_2px_2px_0_#4ade80]">
-    <div class="absolute top-1 left-2 w-1.5 h-1.5 bg-white"></div>
-  </div>
-  <div class="w-4 h-14 bg-[#5c3a21] border border-[#3b2110] mx-auto"></div>
-</div></div>
+<!-- RIGHT FLANK: mirrored oak and a young tree further back -->
+<div class="mc-tree absolute bottom-8 right-[286px] hidden sm:block" style="width:230px;height:290px">
+<div class="mc-leaf" style="top:0px;left:86px;width:56px;height:16px"></div>
+<div class="mc-leaf" style="top:12px;left:64px;width:100px;height:18px"></div>
+<div class="mc-leaf" style="top:28px;left:44px;width:140px;height:20px"></div>
+<div class="mc-leaf" style="top:46px;left:26px;width:176px;height:24px"></div>
+<div class="mc-leaf" style="top:70px;left:18px;width:196px;height:22px"></div>
+<div class="mc-leaf" style="top:94px;left:34px;width:164px;height:20px"></div>
+<div class="mc-leaf" style="top:114px;left:58px;width:116px;height:14px"></div>
+<div class="mc-leaf mc-leaf--deep" style="top:54px;left:40px;width:64px;height:10px"></div>
+<div class="mc-leaf mc-leaf--deep" style="top:78px;left:138px;width:48px;height:12px"></div>
+<div class="mc-dirt absolute" style="top:280px;left:66px;width:74px;height:4px"></div>
+<div class="mc-grass-top absolute" style="top:276px;left:66px;width:82px;height:8px"></div>
+<div class="mc-leaf" style="top:36px;left:8px;width:30px;height:14px"></div>
+<div class="mc-leaf" style="top:62px;left:196px;width:26px;height:12px"></div>
+<div class="mc-leaf" style="top:96px;left:6px;width:24px;height:12px"></div>
+<div class="mc-leaf" style="top:104px;left:178px;width:30px;height:12px"></div>
+<div class="mc-leaf" style="top:114px;left:60px;width:20px;height:10px"></div>
+<div class="mc-trunk" style="top:128px;left:92px;width:24px;height:162px"></div>
+</div>
+<div class="mc-tree absolute bottom-8 right-[452px] hidden lg:block opacity-90" style="width:110px;height:150px">
+<div class="mc-leaf" style="top:0px;left:34px;width:40px;height:10px"></div>
+<div class="mc-leaf" style="top:8px;left:22px;width:64px;height:14px"></div>
+<div class="mc-leaf" style="top:22px;left:10px;width:88px;height:14px"></div>
+<div class="mc-leaf" style="top:38px;left:24px;width:60px;height:10px"></div>
+<div class="mc-leaf mc-leaf--deep" style="top:26px;left:54px;width:30px;height:8px"></div>
+<div class="mc-dirt absolute" style="top:136px;left:38px;width:34px;height:4px"></div>
+<div class="mc-grass-top absolute" style="top:132px;left:38px;width:42px;height:8px"></div>
+<div class="mc-leaf" style="top:14px;left:2px;width:20px;height:10px"></div>
+<div class="mc-leaf" style="top:30px;left:84px;width:20px;height:8px"></div>
+<div class="mc-trunk" style="top:52px;left:48px;width:12px;height:92px"></div>
+</div>
+<!-- voxel props standing on the grazing plain -->
+<div class="absolute bottom-10 left-[42%] hidden md:block pointer-events-none select-none" aria-hidden="true">
+<div class="relative w-12 h-12">
+<div class="mc-grass-top absolute inset-x-0 top-0 h-4"></div>
+<div class="mc-dirt absolute inset-x-0 top-4 bottom-0"></div>
+<div class="absolute inset-0 shadow-[inset_-4px_-4px_0_rgba(0,0,0,0.22),inset_4px_4px_0_rgba(255,255,255,0.12)]"></div>
+</div>
+<div class="relative w-12 h-12 -mt-1 ml-3">
+<div class="mc-grass-top absolute inset-x-0 top-0 h-4"></div>
+<div class="mc-dirt absolute inset-x-0 top-4 bottom-0"></div>
+<div class="absolute inset-0 shadow-[inset_-4px_-4px_0_rgba(0,0,0,0.22),inset_4px_4px_0_rgba(255,255,255,0.12)]"></div>
+<div class="absolute -top-3 left-2 w-2 h-3 bg-[#4ade80]"></div>
+<div class="absolute -top-4 left-1.5 w-3 h-2 bg-[#ef4444] shadow-[1px_1px_0_#991b1b]"></div>
+</div>
+</div>
+<div class="absolute bottom-10 left-[63%] hidden lg:block pointer-events-none select-none" aria-hidden="true">
+<div class="relative w-10 h-10 bg-[#8a8a8a] shadow-[inset_-4px_-4px_0_#6f6f6f,inset_4px_4px_0_#a6a6a6,6px_6px_0_rgba(24,48,15,0.16)]">
+<div class="absolute inset-1 opacity-60 [background-image:radial-gradient(#6f6f6f_1.6px,transparent_1.6px)] [background-size:7px_7px]"></div>
+</div>
+<div class="mt-1 w-10 h-3 bg-[#6fae3d] shadow-[inset_0_3px_0_#86c451]"></div>
+</div>
+<!-- Meadow detail: grass tufts, low bushes, scattered flowers -->
+<div class="mc-tuft" style="left:12%;height:16px"></div>
+<div class="mc-tuft" style="left:26%;height:12px"></div>
+<div class="mc-tuft" style="left:37%;height:18px"></div>
+<div class="mc-tuft" style="left:49%;height:13px"></div>
+<div class="mc-tuft" style="left:58%;height:17px"></div>
+<div class="mc-tuft" style="left:71%;height:12px"></div>
+<div class="mc-tuft" style="left:86%;height:15px"></div>
+<div class="mc-leaf mc-leaf--deep" style="bottom:12px;left:31%;width:30px;height:18px"></div>
+<div class="mc-leaf mc-leaf--deep" style="bottom:12px;left:66%;width:24px;height:14px"></div>
+<div class="mc-leaf mc-leaf--deep" style="bottom:12px;left:91%;width:28px;height:16px"></div>
+<div class="absolute bottom-3 pointer-events-none select-none" style="left:21%" aria-hidden="true">
+<div class="w-1 h-3 bg-[#22c55e] mx-auto"></div>
+<div class="w-2.5 h-2.5 bg-[#facc15] border border-[#ca8a04]"></div>
+</div>
+<div class="absolute bottom-3 pointer-events-none select-none" style="left:55%" aria-hidden="true">
+<div class="w-1 h-3 bg-[#22c55e] mx-auto"></div>
+<div class="w-2.5 h-2.5 bg-[#facc15] border border-[#ca8a04]"></div>
+</div>
+<div class="absolute bottom-3 pointer-events-none select-none" style="left:79%" aria-hidden="true">
+<div class="w-1 h-3 bg-[#22c55e] mx-auto"></div>
+<div class="w-2.5 h-2.5 bg-[#facc15] border border-[#ca8a04]"></div>
+</div>
 <!-- FOREGROUND: Stepped Vibrant Minecraft Dirt & Grass Shelf -->
-<div class="absolute bottom-0 w-full h-10 bg-[#5c3a21] border-t-4 border-[#529928] z-20">
+<div class="absolute bottom-0 w-full h-10 z-20 mc-terrain-shelf"><div class="absolute inset-x-0 bottom-0 h-3 bg-[#7d7d7d] border-t-2 border-[#5a5a5a] opacity-90 [background-image:repeating-linear-gradient(90deg,rgba(0,0,0,.18)_0_2px,transparent_2px_16px)]"></div>
 <!-- Repeating pixel dirt texture spots -->
 <div class="w-full h-full opacity-35 bg-[radial-gradient(#382110_2.5px,transparent_2.5px)] [background-size:16px_16px]"></div>
 <!-- Colorful Minecraft Wild Flowers Along the Ground (Poppies, Dandelions, Cherry Blossoms, Alliums) -->
@@ -432,76 +789,110 @@
 </main>
 <!-- END: Main Hero Section -->
 <!-- BEGIN: Bottom Interactive Scenes (Bob Character on Left & Telemetry HUD on Right) -->
-<section class="relative z-30 w-full px-4 pb-2 flex flex-col md:flex-row items-end justify-between gap-6 pointer-events-none" data-purpose="interactive-playground">
+<section class="relative z-30 w-full px-4 pb-2 min-h-[120px] flex flex-col md:flex-row items-end justify-between gap-6 pointer-events-none" data-purpose="interactive-playground">
 <!-- BOB THE BUILDER & VOXEL WORKSHOP SCENE (Bottom-Left) -->
 <div class="pointer-events-auto flex items-end gap-5">
 <!-- Pixel Bob Character Container -->
-<div class="relative w-20 h-28 flex-shrink-0 select-none">
+<div class="steve-walker relative w-20 h-28 flex-shrink-0 select-none">
 <!-- Speech Bubble from Bob -->
-<div class="absolute -top-12 -left-4 bg-white text-black font-pixel text-[10px] px-2.5 py-1 rounded shadow-lg border-2 border-black whitespace-nowrap after:content-[''] after:absolute after:top-full after:left-8 after:border-4 after:border-transparent after:border-t-white">
+<div class="absolute -top-12 left-1 bg-white text-black font-pixel text-[10px] px-2.5 py-1 rounded shadow-lg border-2 border-black whitespace-nowrap after:content-[''] after:absolute after:top-full after:left-8 after:border-4 after:border-transparent after:border-t-white">
           "ASYNC COMMITS PLACED!"
         </div>
-<!-- Bob Voxel Character Art -->
-<div class="relative w-full h-full">
-<!-- Yellow Hardhat -->
-<div class="absolute top-1 left-3 w-14 h-5 bg-[#f7b731] border-2 border-[#b07d17] shadow-sm">
-<div class="w-16 h-2 -ml-1 mt-3 bg-[#e5a625]"></div>
-</div>
-<!-- Head / Face -->
-<div class="absolute top-5 left-5 w-10 h-9 bg-[#fcdbb0] border-2 border-[#cfa579]">
-<!-- Pixel Eyes & Beard -->
-<div class="absolute top-2 left-2 w-2 h-2 bg-[#2d3436]"></div>
-<div class="absolute top-2 right-2 w-2 h-2 bg-[#2d3436]"></div>
-<div class="absolute bottom-1 left-2 w-6 h-2 bg-[#8c5738]"></div>
-</div>
-<!-- Body / Blue Denim Overalls + Orange Flannel -->
-<div class="absolute top-12 left-3 w-14 h-11 bg-[#3867d6] border-2 border-[#20408e]">
-<div class="w-full h-3 bg-[#e67e22]"></div>
-<!-- Overall Straps & Pocket -->
-<div class="flex justify-between px-2 pt-0.5">
-<div class="w-2 h-4 bg-[#2b4fa8]"></div>
-<div class="w-3 h-2 bg-[#254593] mt-2 border border-[#4b7bec]"></div>
-<div class="w-2 h-4 bg-[#2b4fa8]"></div>
-</div>
-</div>
-<!-- Left Arm (static) -->
-<div class="absolute top-13 left-0 w-3 h-6 bg-[#e67e22] border-2 border-[#d35400]"></div>
-<!-- Swinging Right Arm holding Diamond Pickaxe -->
-<div class="swinging-arm absolute top-13 right-0 w-16 h-16 origin-top-left pointer-events-none" id="bob-arm" style="animation: 0.35s ease-in-out 0s infinite normal none running pickaxeSwing;">
-<!-- Arm -->
-<div class="w-3 h-6 bg-[#e67e22] border-2 border-[#d35400] ml-8"></div>
-<!-- Hand holding pickaxe shaft -->
-<div class="w-4 h-3 bg-[#fcdbb0] border border-[#cfa579] ml-8 mt-[-4px]"></div>
-<!-- Diamond Pickaxe Graphic -->
-<div class="absolute top-2 left-7 w-8 h-8 rotate-45 flex items-center justify-center">
-<div class="w-2 h-10 bg-[#795548] border border-[#4e342e]"></div>
-<div class="absolute -top-1 -left-2 w-6 h-2.5 bg-[#45d9e8] border border-[#1b8a96] shadow-[0_0_8px_#5decf5]"></div>
-</div>
-</div>
-<!-- Legs & Boots -->
-<div class="absolute bottom-0 left-4 flex gap-2">
-<div class="w-5 h-6 bg-[#20408e] border border-[#14285c]">
-<div class="w-5 h-2 mt-4 bg-[#4b382a] border border-[#2b1f16]"></div>
-</div>
-<div class="w-5 h-6 bg-[#20408e] border border-[#14285c]">
-<div class="w-5 h-2 mt-4 bg-[#4b382a] border border-[#2b1f16]"></div>
-</div>
-</div>
-<!-- Dynamic Sparks bursting from the pickaxe strike point -->
-<div class="absolute top-16 right-[-10px] w-4 h-4 pointer-events-none">
-<div class="spark w-1.5 h-1.5 bg-mc-gold shadow-[0_0_4px_#ffd83d]" style="--tx: 18px; --ty: -18px;"></div>
-<div class="spark w-2 h-2 bg-mc-diamond shadow-[0_0_6px_#5decf5]" style="--tx: -15px; --ty: -22px; animation-delay: 0.15s;"></div>
-<div class="spark w-1.5 h-1.5 bg-[#ff4757]" style="--tx: 22px; --ty: 8px; animation-delay: 0.3s;"></div>
-<div class="spark w-1 h-1 bg-white" style="--tx: 10px; --ty: -28px; animation-delay: 0.4s;"></div>
-</div>
+<!-- Steve (Minecraft player) — one SVG unit = one skin pixel -->
+<div class="relative w-[92px] h-[112px] steve-stage">
+<svg class="steve-svg" viewBox="0 0 28 34" width="92" height="112" shape-rendering="crispEdges" role="img" aria-label="Steve swinging a diamond pickaxe">
+<!-- ground shadow -->
+<rect x="6" y="32" width="16" height="1.5" fill="#1d3a12" opacity="0.35"></rect>
+<g id="steve-rig">
+<!-- legs -->
+<g class="steve-legs">
+<g class="steve-leg-l">
+<rect x="10" y="20" width="4" height="9" fill="#3b3bb0"></rect>
+<rect x="10" y="20" width="1" height="9" fill="#4a4ac4"></rect>
+<rect x="10" y="29" width="4" height="3" fill="#4b4b4b"></rect>
+<rect x="10" y="31" width="4" height="1" fill="#2f2f2f"></rect>
+</g>
+<g class="steve-leg-r">
+<rect x="14" y="20" width="4" height="9" fill="#33339c"></rect>
+<rect x="14" y="29" width="4" height="3" fill="#424242"></rect>
+<rect x="14" y="31" width="4" height="1" fill="#2a2a2a"></rect>
+</g>
+</g>
+<!-- torso -->
+<g class="steve-torso">
+<rect x="10" y="8" width="8" height="12" fill="#00a8a8"></rect>
+<rect x="10" y="8" width="1" height="12" fill="#23c2c2"></rect>
+<rect x="17" y="8" width="1" height="12" fill="#00898d"></rect>
+<rect x="13" y="8" width="2" height="1" fill="#bfeeee"></rect>
+<rect x="11" y="17" width="6" height="1" fill="#00898d"></rect>
+</g>
+<!-- head -->
+<g class="steve-head">
+<rect x="10" y="0" width="8" height="8" fill="#c99a6b"></rect>
+<rect x="10" y="0" width="8" height="2" fill="#2b1f10"></rect>
+<rect x="10" y="2" width="1" height="3" fill="#2b1f10"></rect>
+<rect x="17" y="2" width="1" height="3" fill="#2b1f10"></rect>
+<rect x="11" y="2" width="2" height="1" fill="#3d2b16"></rect>
+<rect x="16" y="2" width="1" height="1" fill="#3d2b16"></rect>
+<rect x="10" y="7" width="8" height="1" fill="#a97c50"></rect>
+<rect x="12" y="4" width="1" height="1" fill="#f6f6f6"></rect>
+<rect x="13" y="4" width="1" height="1" fill="#3b3bb8"></rect>
+<rect x="15" y="4" width="1" height="1" fill="#3b3bb8"></rect>
+<rect x="16" y="4" width="1" height="1" fill="#f6f6f6"></rect>
+<rect x="13" y="5" width="2" height="1" fill="#b98a58"></rect>
+<rect x="13" y="6" width="2" height="1" fill="#6b4a30"></rect>
+<rect x="12" y="6" width="1" height="1" fill="#8a5c3a"></rect>
+<rect x="15" y="6" width="1" height="1" fill="#8a5c3a"></rect>
+</g>
+<!-- left arm -->
+<g class="steve-arm-left">
+<rect x="6" y="8" width="4" height="6" fill="#00a8a8"></rect>
+<rect x="6" y="8" width="1" height="6" fill="#23c2c2"></rect>
+<rect x="9" y="8" width="1" height="6" fill="#00797d"></rect>
+<rect x="6" y="14" width="4" height="5" fill="#c99a6b"></rect>
+<rect x="6" y="19" width="4" height="1" fill="#a97c50"></rect>
+</g>
+<!-- right arm + diamond pickaxe (the swinging rig) -->
+<g id="steve-arm">
+<rect x="18" y="8" width="4" height="6" fill="#12b3b3"></rect>
+<rect x="18" y="8" width="1" height="6" fill="#00797d"></rect>
+<rect x="21" y="8" width="1" height="6" fill="#00898d"></rect>
+<rect x="18" y="14" width="4" height="5" fill="#c99a6b"></rect>
+<rect x="18" y="14" width="1" height="5" fill="#a97c50"></rect>
+<rect x="18" y="19" width="4" height="1" fill="#a97c50"></rect>
+<g class="steve-pickaxe">
+<!-- oak handle: one pixel step per two rows, lit on its left edge -->
+<rect x="19" y="18" width="2" height="2" fill="#6b451f"></rect>
+<rect x="19" y="18" width="1" height="2" fill="#8b5a2b"></rect>
+<rect x="20" y="16" width="2" height="2" fill="#8b5a2b"></rect>
+<rect x="20" y="16" width="1" height="2" fill="#a06a3d"></rect>
+<rect x="21" y="14" width="2" height="2" fill="#8b5a2b"></rect>
+<rect x="21" y="14" width="1" height="2" fill="#a06a3d"></rect>
+<rect x="22" y="12" width="2" height="2" fill="#8b5a2b"></rect>
+<rect x="22" y="12" width="1" height="2" fill="#a06a3d"></rect>
+<rect x="23" y="10" width="2" height="2" fill="#8b5a2b"></rect>
+<rect x="23" y="10" width="1" height="2" fill="#a06a3d"></rect>
+<!-- diamond head: peak over the handle, wide bar, tips curling down -->
+<rect x="22" y="7" width="5" height="1" fill="#9ff8ef"></rect>
+<rect x="19" y="8" width="9" height="2" fill="#4aedd9"></rect>
+<rect x="20" y="8" width="4" height="1" fill="#9ff8ef"></rect>
+<rect x="26" y="8" width="2" height="2" fill="#37c9bb"></rect>
+<rect x="19" y="10" width="2" height="1" fill="#2bb5a6"></rect>
+<rect x="26" y="10" width="2" height="1" fill="#2bb5a6"></rect>
+</g>
+</g>
+</g>
+</svg>
+<!-- impact sparks, keyed to the strike frame of steveChop -->
+<div class="absolute left-[92px] top-[52px] w-4 h-4 pointer-events-none">
+<div class="spark w-1.5 h-1.5 bg-mc-gold"></div>
+<div class="spark w-1.5 h-1.5 bg-mc-diamond" style="--tx: -14px; --ty: -16px; animation-delay: .02s;"></div>
+<div class="spark w-1 h-1 bg-white" style="--tx: 16px; --ty: -10px; animation-delay: .04s;"></div>
+<div class="spark w-1 h-1 bg-[#8ef7c4]" style="--tx: 6px; --ty: -20px; animation-delay: .06s;"></div>
 </div>
 </div>
 <!-- Half-Built Skyscraper Scaffold (packages/core.ts) -->
 <div class="hidden sm:flex flex-col items-center">
-<!-- Voxel Scaffold Tower Tag -->
-<span class="mb-1 font-pixel text-[9px] px-2 py-0.5 bg-[#1b1c24] text-mc-emerald border border-mc-emerald/40 shadow-sm">
-          packages/core.ts (Building...)
-        </span>
 <!-- 3D Voxel Blocks Stack -->
 <div class="flex flex-col items-center">
 <!-- Glass Block (Top being placed) -->
@@ -534,7 +925,7 @@
 </div>
 </div>
 <!-- LIVE WORLD TELEMETRY HUD CARD (Bottom-Right) -->
-<div class="pointer-events-auto w-full md:w-64 relative select-none filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.65)]"><div class="absolute -top-3 left-6 flex flex-col items-center z-10"><div class="w-3 h-3 bg-[#4a2e18] border border-[#2d1b0e] shadow-[1px_1px_0_#24150b]"></div><div class="w-1 h-3 bg-[#6a4224]"></div></div><div class="absolute -top-3 right-6 flex flex-col items-center z-10"><div class="w-3 h-3 bg-[#4a2e18] border border-[#2d1b0e] shadow-[1px_1px_0_#24150b]"></div><div class="w-1 h-3 bg-[#6a4224]"></div></div><div class="absolute -top-2.5 -left-2 z-20 pointer-events-none flex flex-col items-start"><div class="flex"><div class="w-4 h-3 bg-[#3d7324] border border-[#284d18]"></div><div class="w-3 h-2 bg-[#529330] border border-[#284d18]"></div><div class="w-2 h-2 bg-[#ffb7c5] shadow-[1px_1px_0_#d86c8a]"></div></div><div class="flex pl-1"><div class="w-2 h-4 bg-[#3d7324] border-l border-r border-[#284d18]"></div><div class="w-3 h-3 bg-[#2d561a]"></div></div><div class="w-2 h-3 bg-[#3d7324] border-l border-r border-[#284d18] ml-1"></div></div><div class="absolute -top-2 right-2 z-20 pointer-events-none flex flex-col items-end"><div class="flex"><div class="w-2 h-2 bg-[#ffb7c5] shadow-[1px_1px_0_#d86c8a]"></div><div class="w-4 h-3 bg-[#4d862e] border border-[#284d18]"></div><div class="w-3 h-2 bg-[#386b20]"></div></div><div class="flex pr-1"><div class="w-3 h-2 bg-[#2d561a]"></div><div class="w-2 h-3 bg-[#4d862e] border-l border-r border-[#284d18]"></div></div></div><div class="relative bg-[#85542d] border-4 border-t-[#c6894c] border-l-[#a6713c] border-b-[#422714] border-r-[#422714] shadow-[4px_4px_0px_#180e07] p-3 text-[#fbf1db] font-pixel overflow-hidden"><div class="absolute inset-0 pointer-events-none opacity-25 bg-[radial-gradient(#4a2b16_1px,transparent_1px)] [background-size:8px_8px]"></div><div class="absolute top-1.5 left-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="relative z-10"><div class="flex items-center justify-between pb-1.5 mb-2 border-b-2 border-[#54331a] shadow-[0_1px_0_#9e6638]"><div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 bg-[#5e381b] border border-[#3b2110] flex items-center justify-center text-[9px] text-[#ffd83d]">📜</div><h3 class="text-xs font-bold text-[#fff2d6] tracking-wide drop-shadow-[1px_1px_0_#331c0d]">WORLD METRICS</h3></div><span class="text-[9px] bg-[#533017] px-1.5 py-0.5 border border-[#3d220f] text-[#ffd83d] tracking-wider drop-shadow-[1px_1px_0_#221308]">RULESET</span></div><ul class="space-y-1.5 text-xs"><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#ffd83d] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#ffd83d] inline-block shadow-[1px_1px_0_#946f00]"></span>1 Commit</span><span class="text-[10px] text-[#ffdea7] font-bold drop-shadow-[1px_1px_0_#2a160a]">1 BRICK LAYER</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#4cd370] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#4cd370] inline-block shadow-[1px_1px_0_#1c6e33]"></span>1 Contributor</span><span class="text-[10px] text-[#9bfa71] font-bold drop-shadow-[1px_1px_0_#2a160a]">1 NPC VILLAGER</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#ff4757] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#ff4757] inline-block shadow-[1px_1px_0_#8c1621]"></span>Open PRs</span><span class="text-[10px] text-[#ffb4ab] font-bold drop-shadow-[1px_1px_0_#2a160a]">REDSTONE MACHINES</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#5decf5] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#5decf5] inline-block shadow-[1px_1px_0_#17828c]"></span>Git Branches</span><span class="text-[10px] text-[#a2c9ff] font-bold drop-shadow-[1px_1px_0_#2a160a]">MINECART RAILS</span></li></ul><div class="mt-2 pt-1.5 border-t border-[#54331a] flex items-center justify-between text-[9px] text-[#ebd4b2] drop-shadow-[1px_1px_0_#2d170a]"><span class="flex items-center gap-1"><span class="">🌿</span> Biome: Oak_Grove</span><span class="bg-[#502e15] px-1 py-0.5 border border-[#3b210e]">Tick: 20 TPS</span></div></div></div></div>
+<div class="pointer-events-auto w-full md:w-64 md:absolute md:right-6 md:bottom-2 relative select-none filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.65)]"><div class="absolute -top-3 left-6 flex flex-col items-center z-10"><div class="w-3 h-3 bg-[#4a2e18] border border-[#2d1b0e] shadow-[1px_1px_0_#24150b]"></div><div class="w-1 h-3 bg-[#6a4224]"></div></div><div class="absolute -top-3 right-6 flex flex-col items-center z-10"><div class="w-3 h-3 bg-[#4a2e18] border border-[#2d1b0e] shadow-[1px_1px_0_#24150b]"></div><div class="w-1 h-3 bg-[#6a4224]"></div></div><div class="absolute -top-2.5 -left-2 z-20 pointer-events-none flex flex-col items-start"><div class="flex"><div class="w-4 h-3 bg-[#3d7324] border border-[#284d18]"></div><div class="w-3 h-2 bg-[#529330] border border-[#284d18]"></div><div class="w-2 h-2 bg-[#ffb7c5] shadow-[1px_1px_0_#d86c8a]"></div></div><div class="flex pl-1"><div class="w-2 h-4 bg-[#3d7324] border-l border-r border-[#284d18]"></div><div class="w-3 h-3 bg-[#2d561a]"></div></div><div class="w-2 h-3 bg-[#3d7324] border-l border-r border-[#284d18] ml-1"></div></div><div class="absolute -top-2 right-2 z-20 pointer-events-none flex flex-col items-end"><div class="flex"><div class="w-2 h-2 bg-[#ffb7c5] shadow-[1px_1px_0_#d86c8a]"></div><div class="w-4 h-3 bg-[#4d862e] border border-[#284d18]"></div><div class="w-3 h-2 bg-[#386b20]"></div></div><div class="flex pr-1"><div class="w-3 h-2 bg-[#2d561a]"></div><div class="w-2 h-3 bg-[#4d862e] border-l border-r border-[#284d18]"></div></div></div><div class="relative bg-[#85542d] border-4 border-t-[#c6894c] border-l-[#a6713c] border-b-[#422714] border-r-[#422714] shadow-[4px_4px_0px_#180e07] p-3 text-[#fbf1db] font-pixel overflow-hidden"><div class="absolute inset-0 pointer-events-none opacity-25 bg-[radial-gradient(#4a2b16_1px,transparent_1px)] [background-size:8px_8px]"></div><div class="absolute top-1.5 left-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute top-1.5 right-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute bottom-1.5 left-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="absolute bottom-1.5 right-1.5 w-1.5 h-1.5 bg-[#2b180a] shadow-[1px_1px_0_#c6894c]"></div><div class="relative z-10"><div class="flex items-center justify-between pb-1.5 mb-2 border-b-2 border-[#54331a] shadow-[0_1px_0_#9e6638]"><div class="flex items-center gap-1.5"><div class="w-3.5 h-3.5 bg-[#5e381b] border border-[#3b2110] flex items-center justify-center text-[9px] text-[#ffd83d]">📜</div><h3 class="text-xs font-bold text-[#fff2d6] tracking-wide drop-shadow-[1px_1px_0_#331c0d]">WORLD METRICS</h3></div><span class="text-[9px] bg-[#533017] px-1.5 py-0.5 border border-[#3d220f] text-[#ffd83d] tracking-wider drop-shadow-[1px_1px_0_#221308]">RULESET</span></div><ul class="space-y-1.5 text-xs"><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#ffd83d] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#ffd83d] inline-block shadow-[1px_1px_0_#946f00]"></span>1 Commit</span><span class="text-[10px] text-[#ffdea7] font-bold drop-shadow-[1px_1px_0_#2a160a]">1 BRICK LAYER</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#4cd370] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#4cd370] inline-block shadow-[1px_1px_0_#1c6e33]"></span>1 Contributor</span><span class="text-[10px] text-[#9bfa71] font-bold drop-shadow-[1px_1px_0_#2a160a]">1 NPC VILLAGER</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#ff4757] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#ff4757] inline-block shadow-[1px_1px_0_#8c1621]"></span>Open PRs</span><span class="text-[10px] text-[#ffb4ab] font-bold drop-shadow-[1px_1px_0_#2a160a]">REDSTONE MACHINES</span></li><li class="flex items-center justify-between bg-[#6d4221] px-2 py-1.5 border border-[#523016] border-l-4 border-l-[#5decf5] shadow-[inset_0_1px_0_#8f5a2e,1px_1px_0_#3d220f]"><span class="flex items-center gap-1.5 text-[#fff8dc] text-[11px] drop-shadow-[1px_1px_0_#2a160a]"><span class="w-2 h-2 bg-[#5decf5] inline-block shadow-[1px_1px_0_#17828c]"></span>Git Branches</span><span class="text-[10px] text-[#a2c9ff] font-bold drop-shadow-[1px_1px_0_#2a160a]">MINECART RAILS</span></li></ul><div class="mt-2 pt-1.5 border-t border-[#54331a] flex items-center justify-between text-[9px] text-[#ebd4b2] drop-shadow-[1px_1px_0_#2d170a]"><span class="flex items-center gap-1"><span class="">🌿</span> Biome: Oak_Grove</span><span class="bg-[#502e15] px-1 py-0.5 border border-[#3b210e]">Tick: 20 TPS</span></div></div></div></div>
 </section>
 <!-- END: Bottom Interactive Scenes -->
 <!-- BEGIN: Interactive Client Logic -->
